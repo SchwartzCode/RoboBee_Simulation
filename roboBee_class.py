@@ -16,11 +16,12 @@ class roboBee(object):
     SENSOR_NOMINAL_VAL = 1.1 #[mA]
 
 
-    pos = [0.0, 0.0, 0.0] #(x,y,z) position coords [mm]
-    vel = [0.0, 0.0, 0.0] #(x,y,z) velocity components [mm/s]
-    accel = [0.0, 0.0, 0.0] #(x,y,z) acceleration components [mm^2/s]
-    INITIAL_ORIENTATION = [0.0, 0.0, 1.0] #orientation vector of robot if it is pointing straight upwards (x, y, z)
-    angular_vel = [0.0, 0.0, 0.0] #velocity of robot in (x, y, z) [rad/s]
+    pos = np.array([0.0, 0.0, 0.0]) #(x,y,z) position coords [mm]
+    vel = np.array([0.0, 0.0, 0.0]) #(x,y,z) velocity components [mm/s]
+    accel = np.array([0.0, 0.0, 0.0]) #(x,y,z) acceleration components [mm^2/s]
+    INITIAL_ORIENTATION = np.array([0.0, 0.0, 1.0]) #orientation vector of robot if it is pointing straight upwards (x, y, z)
+    angular_vel = np.array([0.0, 0.0, 0.0]) #velocity of robot in (x, y, z) [rad/s]
+
     orientation = INITIAL_ORIENTATION #vector of direction robot's head is pointing (x, y, z)
 
 
@@ -35,22 +36,27 @@ class roboBee(object):
 
     """rework these intializer functions to make them more robust"""
     def __init__(self, x_pos, y_pos, z_pos, orientation_xy, orientation_xz, orientation_yz):
-        self.pos = [x_pos, y_pos, z_pos]
+        self.pos = np.array([x_pos, y_pos, z_pos])
         self.vel = np.array([0.0, 0.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
         self.orientation = np.array([orientation_xy, orientation_xz, orientation_yz])
 
     def __init__(self):
-        self.pos = [0.0, 0.0, 0.0]
-        self.vel = [0.0, 0.0, 0.0]
-        self.accel = [0.0, 0.0, 0.0]
-        self.orientation = [0.0, 0.0, 0.0]
+        self.pos = np.array([0.0, 0.0, 0.0])
+        self.vel = np.array([0.0, 0.0, 0.0])
+        self.accel = np.array([0.0, 0.0, 0.0])
+        self.orientation = np.array([0.0, 0.0, 0.0])
+        self.angular_vel = np.array([0.0, 0.0, 0.0])
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
         return normalized
 
-    def iterate(self):
+    def updatePosition(self):
+        print(self.pos)
+        self.pos = self.pos + self.dt*self.vel
+        self.orientation += self.dt*self.angular_vel
+        print(self.pos)
         """adjust position and velocity accordingly"""
         print('iterate')
 

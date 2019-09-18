@@ -8,7 +8,8 @@ Created on Mon Sep  9 18:52:30 2019
 from roboBee_class import *
 
 tester = roboBee()
-tester.getState()
-tester.readSensors()
+#tester.getState()
+#tester.readSensors()
+tester.updatePosition()
 
 #print('test2')

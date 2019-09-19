@@ -25,7 +25,7 @@ class roboBee(object):
     orientation = INITIAL_ORIENTATION #vector of direction robot's head is pointing (x, y, z)
 
 
-    dt = 1/120 #time step in seconds; represents one step at 120 Hz
+    dt = 0.5 #1/120 #time step in seconds; represents one step at 120 Hz
     light_source_loc = np.array([0.0, 0.0, 1000.0]) #location of light source [mm]
     sensor_readings = np.array([0.0, 0.0, 0.0, 0.0]) #current flowing from phototransistors, between 1.1mA and 100 nA
     INITIAL_SENSOR_POSITIONS = np.array([ [np.sqrt(0.75), 0.0, 0.5], #vectors normal to each sensor at initial orientation (x,y,z)
@@ -45,20 +45,48 @@ class roboBee(object):
         self.pos = np.array([0.0, 0.0, 0.0])
         self.vel = np.array([0.0, 0.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
-        self.orientation = np.array([0.0, 0.0, 0.0])
+        self.orientation = np.array([0.0, 0.0, 1.0])
         self.angular_vel = np.array([0.0, 0.0, 0.0])
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
         return normalized
 
-    def updatePosition(self):
-        print(self.pos)
+    def updateState(self):
         self.pos = self.pos + self.dt*self.vel
-        self.orientation += self.dt*self.angular_vel
-        print(self.pos)
+
+
+        new_orientation = np.zeros(3)
+
+        theta = self.dt*self.angular_vel[0]
+        print(self.orientation, theta)
+        new_orientation[2] = self.orientation[2]*np.cos(theta) - self.orientation[1]*np.sin(theta)
+        storage = self.orientation[2]*np.sin(theta) + self.orientation[1]*np.cos(theta)
+        print(storage)
+        new_orientation[1] = storage
+        new_orientation[0] = self.orientation[0]
+
+        print(new_orientation)
+        #print(self.orientation)
+
+
+        """
+        for i in range(len(self.angular_vel)):
+            #self.orientation = self.normalize(self.orientation)
+
+            theta = self.dt*self.angular_vel[i]
+            print(i, theta)
+            new_orientation[i-1] += self.orientation[i-1]*np.cos(theta) - self.orientation[i-2]*np.sin(theta)
+            new_orientation[i-2] += self.orientation[i-1]*np.sin(theta) + self.orientation[i-2]*np.cos(theta)
+
+        new_orientation = self.normalize(new_orientation)
+        print(new_orientation)
+        self.orientation = new_orientation
+        #print(self.orientation)
+        """
+
         """adjust position and velocity accordingly"""
-        print('iterate')
+
 
     def altitudeController(self):
         """calculate output of altitude controller and apply it

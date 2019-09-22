@@ -58,12 +58,12 @@ class roboBee(object):
 
         new_orientation = np.zeros(3)
 
+        #"""
+        #Calculate rotation from x component of angular velocity
         theta = self.dt*self.angular_vel[0]
         print(self.orientation, theta)
         new_orientation[2] = self.orientation[2]*np.cos(theta) - self.orientation[1]*np.sin(theta)
-        storage = self.orientation[2]*np.sin(theta) + self.orientation[1]*np.cos(theta)
-        print(storage)
-        new_orientation[1] = storage
+        new_orientation[1] = self.orientation[2]*np.sin(theta) + self.orientation[1]*np.cos(theta)
         new_orientation[0] = self.orientation[0]
 
         print(new_orientation)

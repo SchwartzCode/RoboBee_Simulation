@@ -48,7 +48,7 @@ class roboBee(object):
         self.vel = np.array([0.0, 0.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
         self.orientation = np.array([0.0, 1.0, 0.0])
-        self.angular_vel = np.array([np.pi/2, 0.0, np.pi/2])
+        self.angular_vel = np.array([0.0, 0.0, np.pi/2])
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
@@ -83,35 +83,8 @@ class roboBee(object):
                 print("Inertial Frame: ")
                 print(self.inertial_frame)
 
-        """
-        #Calculate rotation from x component of angular velocity
-        theta = self.dt*self.angular_vel[0]
-        print(self.orientation, theta)
-        new_orientation[2] = self.orientation[2]*np.cos(theta) - self.orientation[1]*np.sin(theta)
-        new_orientation[1] = self.orientation[2]*np.sin(theta) + self.orientation[1]*np.cos(theta)
-        new_orientation[0] = self.orientation[0]
-
-        print(new_orientation)
-        #print(self.orientation)
 
 
-
-        for i in range(len(self.angular_vel)):
-            #self.orientation = self.normalize(self.orientation)
-
-            theta = self.dt*self.angular_vel[i]
-            print(i, theta)
-            new_orientation[i-1] += self.orientation[i-1]*np.cos(theta) - self.orientation[i-2]*np.sin(theta)
-            new_orientation[i-2] += self.orientation[i-1]*np.sin(theta) + self.orientation[i-2]*np.cos(theta)
-
-        new_orientation = self.normalize(new_orientation)
-        print(new_orientation)
-        self.orientation = new_orientation
-        #print(self.orientation)
-        """
-
-
-        """adjust position and velocity accordingly"""
 
 
     def altitudeController(self):

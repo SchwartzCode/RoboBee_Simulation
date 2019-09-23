@@ -1,4 +1,5 @@
 import numpy as np
+from pyquaternion import Quaternion
 
 class roboBee(object):
     """  CONSTANTS & ROBOT SPECS   """
@@ -14,6 +15,7 @@ class roboBee(object):
     WING_INERTIA = 45.3 #inertia of wing about flapping axis [mg/mm^2]
     WING_MASS = 1.0 #[mg]
     SENSOR_NOMINAL_VAL = 1.1 #[mA]
+    ORIENTATION_AXES = np.identity(3)
 
 
     pos = np.array([0.0, 0.0, 0.0]) #(x,y,z) position coords [mm]
@@ -46,7 +48,7 @@ class roboBee(object):
         self.vel = np.array([0.0, 0.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
         self.orientation = np.array([0.0, 0.0, 1.0])
-        self.angular_vel = np.array([0.0, 0.0, 0.0])
+        self.angular_vel = np.array([np.pi/2, 0.0, 0.0])
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
@@ -55,10 +57,21 @@ class roboBee(object):
     def updateState(self):
         self.pos = self.pos + self.dt*self.vel
 
+        new_orientation = np.zeros(3, dtype = float)
+        theta_vals = np.zeros(3, dtype=float)
 
-        new_orientation = np.zeros(3)
+        for i in range(3):
+            dt = 1
+            theta_vals[i] = dt*self.angular_vel[i]
 
-        #"""
+
+        for i in range(3):
+            if abs(theta_vals[i]) > 0.01:
+                rotation = Quaternion(axis=[1,0,0], angle=theta_vals[i])
+                self.orientation = rotation.rotate(self.orientation)
+                print(theta_vals[i], self.orientation)
+
+        """
         #Calculate rotation from x component of angular velocity
         theta = self.dt*self.angular_vel[0]
         print(self.orientation, theta)
@@ -70,7 +83,7 @@ class roboBee(object):
         #print(self.orientation)
 
 
-        """
+
         for i in range(len(self.angular_vel)):
             #self.orientation = self.normalize(self.orientation)
 
@@ -84,6 +97,7 @@ class roboBee(object):
         self.orientation = new_orientation
         #print(self.orientation)
         """
+
 
         """adjust position and velocity accordingly"""
 

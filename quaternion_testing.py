@@ -26,6 +26,8 @@ def basic_rotation():
     print(v_reverse)
 
 def increment_rotation(n_val):
+    #this did not work as I expected; I didn't realize the changing relation between the x/y/z axes and
+    #the orientation vector meant the amount of the rotation would change
     v = np.array([0., 0., 1.])
     n = n_val
     half_pi = np.pi / 2

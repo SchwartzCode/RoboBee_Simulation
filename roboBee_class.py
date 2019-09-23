@@ -15,7 +15,7 @@ class roboBee(object):
     WING_INERTIA = 45.3 #inertia of wing about flapping axis [mg/mm^2]
     WING_MASS = 1.0 #[mg]
     SENSOR_NOMINAL_VAL = 1.1 #[mA]
-    ORIENTATION_AXES = np.identity(3)
+    inertial_frame = np.identity(3)
 
 
     pos = np.array([0.0, 0.0, 0.0]) #(x,y,z) position coords [mm]
@@ -47,8 +47,8 @@ class roboBee(object):
         self.pos = np.array([0.0, 0.0, 0.0])
         self.vel = np.array([0.0, 0.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
-        self.orientation = np.array([0.0, 0.0, 1.0])
-        self.angular_vel = np.array([np.pi/2, 0.0, 0.0])
+        self.orientation = np.array([0.0, 1.0, 0.0])
+        self.angular_vel = np.array([np.pi/2, 0.0, np.pi/2])
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
@@ -67,9 +67,21 @@ class roboBee(object):
 
         for i in range(3):
             if abs(theta_vals[i]) > 0.01:
-                rotation = Quaternion(axis=[1,0,0], angle=theta_vals[i])
+                print("=== BEFORE ROTATING ===")
+                print("Orientation: ", self.orientation)
+                print("Inertial Frame: ")
+                print(self.inertial_frame)
+                rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
                 self.orientation = rotation.rotate(self.orientation)
-                print(theta_vals[i], self.orientation)
+                for j in range(3):
+                    self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
+
+                print("Angle: ", theta_vals[i], "Axis: ", i)
+
+                print("=== AFTER ROTATING ===")
+                print("Orientation: ", self.orientation)
+                print("Inertial Frame: ")
+                print(self.inertial_frame)
 
         """
         #Calculate rotation from x component of angular velocity

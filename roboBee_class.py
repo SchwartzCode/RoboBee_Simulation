@@ -30,11 +30,11 @@ class roboBee(object):
     dt = 0.5 #1/120 #time step in seconds; represents one step at 120 Hz
     light_source_loc = np.array([0.0, 0.0, 1000.0]) #location of light source [mm]
     sensor_readings = np.array([0.0, 0.0, 0.0, 0.0]) #current flowing from phototransistors, between 1.1mA and 100 nA
-    INITIAL_SENSOR_POSITIONS = np.array([ [np.sqrt(0.75), 0.0, 0.5], #vectors normal to each sensor at initial orientation (x,y,z)
-                                  [0.0, np.sqrt(0.75), 0.5],
-                                  [-np.sqrt(0.75), 0.0, 0.5],
-                                  [0.0, -np.sqrt(0.75), 0.5]])
-    sensor_positions = INITIAL_SENSOR_POSITIONS
+    INITIAL_SENSOR_ORIENTATIONS = np.array([ [np.sqrt(0.75),   0.5,  0.0], #vectors normal to each sensor face at initial orientation (x,y,z)
+                                          [0.0,             0.5,  np.sqrt(0.75)],
+                                          [-np.sqrt(0.75),  0.5,  0.0],
+                                          [0.0,             0.5,  -np.sqrt(0.75)]])
+    sensor_orientations = INITIAL_SENSOR_ORIENTATIONS
 
     """rework these intializer functions to make them more robust"""
     def __init__(self, x_pos, y_pos, z_pos, orientation_xy, orientation_xz, orientation_yz):
@@ -61,6 +61,25 @@ class roboBee(object):
         theta_vals = np.zeros(3, dtype=float)
 
         for i in range(3):
+            theta_vals[i] = self.dt*self.angular_vel[i] #calculate angle to rotate about orientaiton axes
+            if abs(theta_vals[i]) > 0.01:           #only rotate if angle is significant (to prevent rotation w/ tiny floats)
+
+                rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
+                self.orientation = rotation.rotate(self.orientation)
+                for j in range(3):
+                    self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
+                    self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
+                self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
+
+
+
+    def updateState_verbose(self):
+        self.pos = self.pos + self.dt*self.vel
+
+        new_orientation = np.zeros(3, dtype = float)
+        theta_vals = np.zeros(3, dtype=float)
+
+        for i in range(3):
             dt = 1
             theta_vals[i] = dt*self.angular_vel[i]
 
@@ -71,17 +90,25 @@ class roboBee(object):
                 print("Orientation: ", self.orientation)
                 print("Inertial Frame: ")
                 print(self.inertial_frame)
+                print("Sensors: ")
+                print(self.sensor_orientations)
+
                 rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
                 self.orientation = rotation.rotate(self.orientation)
                 for j in range(3):
                     self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
+                    self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
 
-                print("Angle: ", theta_vals[i], "Axis: ", i)
+                self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
+
+                print("\nAngle: ", theta_vals[i], "Axis: ", i, "\n")
 
                 print("=== AFTER ROTATING ===")
                 print("Orientation: ", self.orientation)
                 print("Inertial Frame: ")
                 print(self.inertial_frame)
+                print("Sensors: ")
+                print(self.sensor_orientations)
 
 
 

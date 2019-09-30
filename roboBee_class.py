@@ -60,6 +60,7 @@ class roboBee(object):
         new_orientation = np.zeros(3, dtype = float)
         theta_vals = np.zeros(3, dtype=float)
 
+
         for i in range(3):
             theta_vals[i] = self.dt*self.angular_vel[i] #calculate angle to rotate about orientaiton axes
             if abs(theta_vals[i]) > 0.01:           #only rotate if angle is significant (to prevent rotation w/ tiny floats)
@@ -70,6 +71,25 @@ class roboBee(object):
                     self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
                     self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
                 self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
+
+
+        """
+        rot_exists = False
+        for i in range(3):
+            theta_vals[i] = self.dt*self.angular_vel[i] #calculate angle to rotate about orientaiton axes
+            if abs(theta_vals[i]) > 0.01 and rot_exists:
+                rotation = rotation * Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
+            else:
+                rotation = Quaternion(axis=self.intertial_frame[i], angle=theta_vals[i])
+                rot_exists = True
+
+        self.orientation = rotation.rotate(self.orientation)
+        for j in range(3):
+            self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
+            self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
+        self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
+            
+        """
 
 
 

@@ -15,15 +15,18 @@ def initial_test():
 
 def basic_rotation():
     v = np.array([0.,0.,1.])
+    u = v.copy()
 
     x_rot = Quaternion(axis=[1,0,0], angle=3.14159265/2) #rotate 90 degrees about X
     y_rot = Quaternion(axis=[0,1,0], angle=3.14159265/2) #rotate 90 degrees about Y
     total_rot = y_rot*x_rot #performs x_rot then y_rot
     #print("a", total_rot)
     v_rot = total_rot.rotate(v)
+    u_rot = x_rot.rotate(u)
+    u_rot = y_rot.rotate(u_rot)
     v_reverse = (x_rot*y_rot).rotate(v) #performs y_rot then x_rot
     print(v_rot)
-    print(v_reverse)
+    print(u_rot)
 
 def increment_rotation(n_val):
     #this did not work as I expected; I didn't realize the changing relation between the x/y/z axes and
@@ -44,4 +47,4 @@ def increment_rotation(n_val):
 
 
 print("hi")
-increment_rotation(10)
+basic_rotation()

@@ -88,7 +88,7 @@ class roboBee(object):
             self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
             self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
         self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
-            
+
         """
 
 

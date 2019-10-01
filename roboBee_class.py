@@ -15,6 +15,7 @@ class roboBee(object):
     WING_INERTIA = 45.3 #inertia of wing about flapping axis [mg/mm^2]
     WING_MASS = 1.0 #[mg]
     SENSOR_NOMINAL_VAL = 1.1 #[mA]
+    ROTATION_MIN = 0.01 #minimum angle of rotation required for robot orientaiton to be changed [radians]
     inertial_frame = np.identity(3)
 
 
@@ -27,7 +28,7 @@ class roboBee(object):
     orientation = INITIAL_ORIENTATION #vector of direction robot's head is pointing (x, y, z)
 
 
-    dt = 0.5 #1/120 #time step in seconds; represents one step at 120 Hz
+    dt = 1 #1/120 #time step in seconds; represents one step at 120 Hz
     light_source_loc = np.array([0.0, 0.0, 1000.0]) #location of light source [mm]
     sensor_readings = np.array([0.0, 0.0, 0.0, 0.0]) #current flowing from phototransistors, between 1.1mA and 100 nA
     INITIAL_SENSOR_ORIENTATIONS = np.array([ [np.sqrt(0.75),   0.5,  0.0], #vectors normal to each sensor face at initial orientation (x,y,z)
@@ -48,7 +49,7 @@ class roboBee(object):
         self.vel = np.array([0.0, 0.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
         self.orientation = np.array([0.0, 1.0, 0.0])
-        self.angular_vel = np.array([0.0, 0.0, np.pi/2])
+        self.angular_vel = np.array([np.pi/2, np.pi/2, 0.0])
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
@@ -61,26 +62,13 @@ class roboBee(object):
         theta_vals = np.zeros(3, dtype=float)
 
 
-        for i in range(3):
-            theta_vals[i] = self.dt*self.angular_vel[i] #calculate angle to rotate about orientaiton axes
-            if abs(theta_vals[i]) > 0.01:           #only rotate if angle is significant (to prevent rotation w/ tiny floats)
-
-                rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
-                self.orientation = rotation.rotate(self.orientation)
-                for j in range(3):
-                    self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
-                    self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
-                self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
-
-
-        """
         rot_exists = False
         for i in range(3):
             theta_vals[i] = self.dt*self.angular_vel[i] #calculate angle to rotate about orientaiton axes
             if abs(theta_vals[i]) > 0.01 and rot_exists:
                 rotation = rotation * Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
-            else:
-                rotation = Quaternion(axis=self.intertial_frame[i], angle=theta_vals[i])
+            elif abs(theta_vals[i] > 0.01):
+                rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
                 rot_exists = True
 
         self.orientation = rotation.rotate(self.orientation)
@@ -89,7 +77,7 @@ class roboBee(object):
             self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
         self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
 
-        """
+
 
 
 
@@ -100,8 +88,7 @@ class roboBee(object):
         theta_vals = np.zeros(3, dtype=float)
 
         for i in range(3):
-            dt = 1
-            theta_vals[i] = dt*self.angular_vel[i]
+            theta_vals[i] = self.dt*self.angular_vel[i]
 
 
         for i in range(3):
@@ -114,14 +101,16 @@ class roboBee(object):
                 print(self.sensor_orientations)
 
                 rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
+
                 self.orientation = rotation.rotate(self.orientation)
                 for j in range(3):
                     self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
                     self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
-
                 self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
 
-                print("\nAngle: ", theta_vals[i], "Axis: ", i, "\n")
+
+                if theta_vals[i] > self.ROTATION_MIN:
+                    print("\nAngle: ", theta_vals[i], "Axis: ", i, "\n")
 
                 print("=== AFTER ROTATING ===")
                 print("Orientation: ", self.orientation)

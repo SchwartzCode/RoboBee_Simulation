@@ -10,6 +10,7 @@ from roboBee_class import *
 tester = roboBee()
 #tester.getState()
 #tester.readSensors()
-tester.updateState_verbose()
+tester.updateState()
+#print(tester.orientation)
 
 #print('test2')

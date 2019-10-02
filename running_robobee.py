@@ -14,3 +14,4 @@ tester.updateState()
 #print(tester.orientation)
 
 #print('test2')
+tester.update_accel()

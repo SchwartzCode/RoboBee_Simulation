@@ -48,10 +48,10 @@ class roboBee(object):
 
     def __init__(self):
         self.pos = np.array([0.0, 0.0, 0.0])
-        self.vel = np.array([1.0, 1.0, 0.0])
+        self.vel = np.array([0.0, 0.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
         self.orientation = np.array([0.0, 0.0, 1.0])
-        self.angular_vel = np.array([0.0, 1.0, 0.0])
+        self.angular_vel = np.array([0.0, 0.0, 0.0])
         self.angular_acc = np.array([0.0, 0.0, 0.0])
 
     def normalize(self, x):
@@ -78,6 +78,7 @@ class roboBee(object):
 
         acc_inertial = ((drag_force + self.LIFT) / self.MASS + gravity_inertial -
                             np.cross(self.angular_vel, self.vel))
+        #print(acc_inertial)
 
         for i in range(3):
             self.accel[i] = np.dot(acc_inertial, self.GLOBAL_FRAME[i])
@@ -115,11 +116,11 @@ class roboBee(object):
             self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
 
 
-            #call function to update translational and rotational acceleration
-            #and then use the newly calculated accels to adjust velocity vectors
-            self.update_accels()
-            self.vel = self.dt*self.accel
-            self.angular_vel = self.dt*self.angular_acc
+        #call function to update translational and rotational acceleration
+        #and then use the newly calculated accels to adjust velocity vectors
+        self.update_accels()
+        self.vel = self.vel + self.dt*self.accel
+        self.angular_vel = self.dt*self.angular_acc
 
 
     def updateState_verbose(self):
@@ -162,7 +163,7 @@ class roboBee(object):
 
     def run(self, timesteps):
         for i in range(timesteps):
-            print(i,self.orientation)
+            print(i,self.pos)
             self.updateState()
 
 

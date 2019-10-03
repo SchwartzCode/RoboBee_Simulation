@@ -14,4 +14,4 @@ tester = roboBee()
 #print(tester.orientation)
 
 #print('test2')
-tester.run(20)
+tester.run(20000)

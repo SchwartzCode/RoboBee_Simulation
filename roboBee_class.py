@@ -25,12 +25,13 @@ class roboBee(object):
     vel = np.array([0.0, 0.0, 0.0]) #(x,y,z) velocity components [mm/s]
     accel = np.array([0.0, 0.0, 0.0]) #(x,y,z) acceleration components [mm^2/s]
     INITIAL_ORIENTATION = np.array([0.0, 0.0, 1.0]) #orientation vector of robot if it is pointing straight upwards (x, y, z)
-    angular_vel = np.array([0.0, 0.0, 0.0]) #velocity of robot in (x, y, z) [rad/s]
+    angular_vel = np.zeros(3) #velocity of robot in (x, y, z) [rad/s]
+    angular_accel = np.zeros(3)
 
     orientation = INITIAL_ORIENTATION #vector of direction robot's head is pointing (x, y, z)
 
 
-    dt = 1 #1/120 #time step in seconds; represents one step at 120 Hz
+    dt = 1/120 #1/120 #time step in seconds; represents one step at 120 Hz
     light_source_loc = np.array([0.0, 0.0, 1000.0]) #location of light source [mm]
     sensor_readings = np.array([0.0, 0.0, 0.0, 0.0]) #current flowing from phototransistors, between 1.1mA and 100 nA
     INITIAL_SENSOR_ORIENTATIONS = np.array([ [np.sqrt(0.75),   0.5,  0.0], #vectors normal to each sensor face at initial orientation (x,y,z)
@@ -48,11 +49,11 @@ class roboBee(object):
 
     def __init__(self):
         self.pos = np.array([0.0, 0.0, 0.0])
-        self.vel = np.array([0.0, 0.0, 0.0])
+        self.vel = np.array([1.0, 0.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
-        self.orientation = np.array([0.0, 0.0, 1.0])
+        self.orientation = np.array([0.0, 1.0, 0.0])
         self.angular_vel = np.array([0.0, 0.0, 0.0])
-        self.angular_acc = np.array([0.0, 0.0, 0.0])
+        self.angular_accel = np.array([0.0, 0.0, 0.0])
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
@@ -75,10 +76,11 @@ class roboBee(object):
         torque_gen = np.array([0.0, 0.0, 0.0]) #the torque controller will generate this
         self.angular_accel = (torque_gen - torque_drag + np.cross(self.R_w, drag_force)
                             - np.cross(self.angular_vel, self.Jz*self.angular_vel))/self.Jz
+        #print("hiya  ", self.angular_accel)
 
         acc_inertial = ((drag_force + self.LIFT) / self.MASS + gravity_inertial -
                             np.cross(self.angular_vel, self.vel))
-        #print(acc_inertial)
+        #print("++++++++", self.angular_vel, self.vel, acc_inertial)
 
         for i in range(3):
             self.accel[i] = np.dot(acc_inertial, self.GLOBAL_FRAME[i])
@@ -120,7 +122,7 @@ class roboBee(object):
         #and then use the newly calculated accels to adjust velocity vectors
         self.update_accels()
         self.vel = self.vel + self.dt*self.accel
-        self.angular_vel = self.dt*self.angular_acc
+        self.angular_vel = self.dt*self.angular_accel
 
 
     def updateState_verbose(self):
@@ -163,7 +165,8 @@ class roboBee(object):
 
     def run(self, timesteps):
         for i in range(timesteps):
-            print(i,self.pos)
+            if(i%10 == 0):
+                print("toot", self.vel, self.dt, self.accel)
             self.updateState()
 
 

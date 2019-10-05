@@ -24,7 +24,7 @@ class roboBee(object):
     pos = np.array([0.0, 0.0, 0.0]) #(x,y,z) position coords [mm]
     vel = np.array([0.0, 0.0, 0.0]) #(x,y,z) velocity components [mm/s]
     accel = np.array([0.0, 0.0, 0.0]) #(x,y,z) acceleration components [mm^2/s]
-    INITIAL_ORIENTATION = np.array([0.0, 0.0, 1.0]) #orientation vector of robot if it is pointing straight upwards (x, y, z)
+    INITIAL_ORIENTATION = np.array([0.0, 1.0, 0.0]) #orientation vector of robot if it is pointing straight upwards (x, y, z)
     angular_vel = np.zeros(3) #velocity of robot in (x, y, z) [rad/s]
     angular_accel = np.zeros(3)
 
@@ -49,9 +49,9 @@ class roboBee(object):
 
     def __init__(self):
         self.pos = np.array([0.0, 0.0, 0.0])
-        self.vel = np.array([1.0, 0.0, 0.0])
+        self.vel = np.array([0.0, 1.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
-        self.orientation = np.array([0.0, 1.0, 0.0])
+        self.orientation = np.array([0.0, 0.0, 0.0])
         self.angular_vel = np.array([0.0, 0.0, 0.0])
         self.angular_accel = np.array([0.0, 0.0, 0.0])
 
@@ -65,9 +65,9 @@ class roboBee(object):
         drag_torque = np.cross(-self.R_w, drag_force)
 
         gravity = np.array([0.0, -self.g, 0.0])
-        gravity_inertial = np.array([np.dot(self.inertial_frame[0], gravity), #this might be unneccesary
-                                        np.dot(self.inertial_frame[1], gravity),
-                                        np.dot(self.inertial_frame[2], gravity)])
+        gravity_inertial = np.array([np.dot(gravity, self.inertial_frame[0]), #this might be unneccesary
+                                        np.dot(gravity, self.inertial_frame[1]),
+                                        np.dot(gravity, self.inertial_frame[2])])
 
 
         torque_drag = np.cross(-self.R_w, drag_force)
@@ -76,24 +76,28 @@ class roboBee(object):
         torque_gen = np.array([0.0, 0.0, 0.0]) #the torque controller will generate this
         self.angular_accel = (torque_gen - torque_drag + np.cross(self.R_w, drag_force)
                             - np.cross(self.angular_vel, self.Jz*self.angular_vel))/self.Jz
-        #print("hiya  ", self.angular_accel)
 
-        acc_inertial = ((drag_force + self.LIFT) / self.MASS + gravity_inertial -
+        self.accel = ((drag_force + self.LIFT) / self.MASS + gravity_inertial -
                             np.cross(self.angular_vel, self.vel))
-        #print("++++++++", self.angular_vel, self.vel, acc_inertial)
 
-        for i in range(3):
-            self.accel[i] = np.dot(acc_inertial, self.GLOBAL_FRAME[i])
-
-        accel_translational = np.zeros(3)
-        accel_rotational = np.zeros(3)
 
         #print(drag_force)
 
     def updateState(self):
 
         #=== update position from velocity vector ===
-        self.pos = self.pos + self.dt*self.vel
+        vel_global = np.zeros(3)
+        for i in range(3):
+            if self.vel[i] > 15:
+                self.vel[i] = 15.
+            elif self.vel[i] < -15:
+                self.vel[i] = -15.
+            vel_global[i] = np.dot(self.vel, self.GLOBAL_FRAME[i])
+
+
+        print("AAAAA   ", self.vel)
+        #print("++++++++", self.accel, self.vel, self.angular_accel)
+        self.pos = self.pos + self.dt*vel_global
 
 
         #=== generate and apply rotations from angular velocities ===
@@ -104,9 +108,9 @@ class roboBee(object):
         rot_exists = False
         for i in range(3):
             theta_vals[i] = self.dt*self.angular_vel[i] #calculate angle to rotate about orientaiton axes
-            if abs(theta_vals[i]) > 0.01 and rot_exists:
+            if abs(theta_vals[i]) > self.ROTATION_MIN and rot_exists:
                 rotation = rotation * Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
-            elif abs(theta_vals[i] > 0.01):
+            elif abs(theta_vals[i] > self.ROTATION_MIN):
                 rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
                 rot_exists = True
 
@@ -126,7 +130,12 @@ class roboBee(object):
 
 
     def updateState_verbose(self):
-        self.pos = self.pos + self.dt*self.vel
+        #update position based on velocity, must convert velocity from inertial
+        #reference frame to global frame in order for position to make sense
+        vel_global = np.zeros(3)
+        for i in range(3):
+            vel_global[i] = np.dot(self.vel, self.GLOBAL_FRAME[i])
+        self.pos = self.pos + self.dt*vel_global
 
         new_orientation = np.zeros(3, dtype = float)
         theta_vals = np.zeros(3, dtype=float)
@@ -164,10 +173,13 @@ class roboBee(object):
                 print(self.sensor_orientations)
 
     def run(self, timesteps):
+        data = np.array(self.pos[0], self.pos[1])
         for i in range(timesteps):
-            if(i%10 == 0):
-                print("toot", self.vel, self.dt, self.accel)
+            if(i%10 == 0 and i != 0):
+                #np.append(data, [self.pos[0], self.pos[1]])
+                print(i, "POS:", self.pos, "----- ORIENTATION:", self.orientation)
             self.updateState()
+        print("hi", data)
 
 
 

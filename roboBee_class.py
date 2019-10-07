@@ -49,9 +49,9 @@ class roboBee(object):
 
     def __init__(self):
         self.pos = np.array([0.0, 0.0, 0.0])
-        self.vel = np.array([0.0, 1.0, 0.0])
-        self.accel = np.array([0.0, 0.0, 0.0])
-        self.orientation = np.array([0.0, 0.0, 0.0])
+        self.vel = np.array([1.0, 0.0, 0.0])
+        self.accel = np.array([0.0, 0.0, 1.0])
+        self.orientation = np.array([0.0, 1.0, 0.0])
         self.angular_vel = np.array([0.0, 0.0, 0.0])
         self.angular_accel = np.array([0.0, 0.0, 0.0])
 
@@ -85,17 +85,19 @@ class roboBee(object):
 
     def updateState(self):
 
+
+
         #=== update position from velocity vector ===
         vel_global = np.zeros(3)
         for i in range(3):
-            if self.vel[i] > 15:
-                self.vel[i] = 15.
-            elif self.vel[i] < -15:
-                self.vel[i] = -15.
+            #if self.vel[i] > 15:
+            #    self.vel[i] = 15.
+            #elif self.vel[i] < -15:
+        #        self.vel[i] = -15.
             vel_global[i] = np.dot(self.vel, self.GLOBAL_FRAME[i])
 
 
-        print("AAAAA   ", self.vel)
+        #print("AAAAA   ", self.inertial_frame[0], self.inertial_frame[1], self.inertial_frame[2])
         #print("++++++++", self.accel, self.vel, self.angular_accel)
         self.pos = self.pos + self.dt*vel_global
 
@@ -121,12 +123,14 @@ class roboBee(object):
                 self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
             self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
 
-
         #call function to update translational and rotational acceleration
         #and then use the newly calculated accels to adjust velocity vectors
         self.update_accels()
         self.vel = self.vel + self.dt*self.accel
         self.angular_vel = self.dt*self.angular_accel
+
+
+
 
 
     def updateState_verbose(self):
@@ -177,9 +181,9 @@ class roboBee(object):
         for i in range(timesteps):
             if(i%10 == 0 and i != 0):
                 #np.append(data, [self.pos[0], self.pos[1]])
-                print(i, "POS:", self.pos, "----- ORIENTATION:", self.orientation)
+                print(i, "POS:", self.pos, "----- VEL:", self.vel)
             self.updateState()
-        print("hi", data)
+        #print("hi", data)
 
 
 
@@ -209,8 +213,6 @@ class roboBee(object):
             print(self.sensor_readings[i], end=' -- ')
         print()
 
-    def newState(self):
-        print("calculating new state")
 
     def getState(self):
         print("===ROBOBEE STATE===")

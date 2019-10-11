@@ -4,7 +4,7 @@ from pyquaternion import Quaternion
 class roboBee(object):
     """  CONSTANTS & ROBOT SPECS   """
     B_w = 0.0002 #drag constant [Ns/m]
-    R_w = np.array([0.0, 0.0, 0.009]) #z distance between center of mass and wings
+    R_w = np.array([0.0, 0.009, 0.0]) #z distance between center of mass and wings
     MASS = 0.08 #mass [g]
     g = 9.81 #gravity
     Jz = 1.42e-9 #Z Axis Rotational Moment of Inertia [kg*m^2]
@@ -47,10 +47,10 @@ class roboBee(object):
 
     def __init__(self):
         self.pos = np.array([0.0, 10.0, 0.0])
-        self.vel = np.array([0.0, 1.0, 0.0])
+        self.vel = np.array([0.0, 0.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
         self.orientation = np.array([0.0, 1.0, 0.0])
-        self.angular_vel = np.array([0.0, 0.0, 0.0])
+        self.angular_vel = np.array([0.0, 0.0, 1.0])
         self.angular_accel = np.array([0.0, 0.0, 0.0])
 
     def normalize(self, x):
@@ -106,7 +106,7 @@ class roboBee(object):
             theta_vals[i] = self.dt*self.angular_vel[i] #calculate angle to rotate about orientaiton axes
             if abs(theta_vals[i]) > self.ROTATION_MIN and rot_exists:
                 rotation = rotation * Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
-            elif abs(theta_vals[i] > self.ROTATION_MIN):
+            elif abs(theta_vals[i]) > self.ROTATION_MIN:
                 rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
                 rot_exists = True
 

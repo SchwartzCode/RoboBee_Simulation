@@ -15,8 +15,6 @@ tester = roboBee()
 #print(tester.orientation)
 
 #print('test2')
-tester.run(200)
+tester.run(500)
 
 #a = np.linspace(1,12,12)
-#print(a)
-#print(a[9:])

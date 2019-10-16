@@ -1,5 +1,6 @@
 import numpy as np
 from pyquaternion import Quaternion
+import matplotlib.pyplot as plt
 
 class roboBee(object):
     """  CONSTANTS & ROBOT SPECS   """
@@ -50,7 +51,7 @@ class roboBee(object):
         self.vel = np.array([0.0, 0.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
         self.orientation = np.array([0.0, 1.0, 0.0])
-        self.angular_vel = np.array([0.0, 0.0, 1.0])
+        self.angular_vel = np.array([1.0, 0.0, 0.0])
         self.angular_accel = np.array([0.0, 0.0, 0.0])
 
     def normalize(self, x):
@@ -66,6 +67,7 @@ class roboBee(object):
         gravity_inertial = np.array([np.dot(gravity, self.inertial_frame[0]), #this might be unneccesary
                                         np.dot(gravity, self.inertial_frame[1]),
                                         np.dot(gravity, self.inertial_frame[2])])
+        #print(drag_torque, self.vel)
 
 
         torque_drag = np.cross(-self.R_w, drag_force)
@@ -170,7 +172,8 @@ class roboBee(object):
                 print(self.sensor_orientations)
 
     def run(self, timesteps):
-        data = np.array(self.pos[0], self.pos[1])
+        vel_data = [ np.linalg.norm(self.vel) ]
+        aVel_data = [ np.linalg.norm(self.angular_vel)]
         for i in range(timesteps):
             if(self.pos[1] <= 0.0):
                 print("\n\nBANG BOOM CRASH OH NO!")
@@ -180,7 +183,16 @@ class roboBee(object):
                 #np.append(data, [self.pos[0], self.pos[1]])
                 print(i, "POS:", self.pos, "\t--ORIENTATION:", self.orientation, "\t--VEL:", self.vel)
             self.updateState()
+            vel_data.append(np.linalg.norm(self.vel))
+            aVel_data.append(np.linalg.norm(self.angular_vel))
         #print("hi", data)
+        a = np.linspace(0,10,len(vel_data))
+        plt.plot(a, vel_data, label='Velocity')
+        plt.plot(a, aVel_data, label='Angular Velocity')
+        plt.grid()
+        plt.legend()
+        plt.ylim(0, 1000)
+        plt.show()
 
 
 

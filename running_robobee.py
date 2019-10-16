@@ -5,8 +5,8 @@ Created on Mon Sep  9 18:52:30 2019
 @author: jonbs
 """
 
-#from roboBee_class import *
-from roboBee_class_state_space import *
+from roboBee_class import *
+#from roboBee_class_state_space import *
 
 tester = roboBee()
 #tester.getState()

@@ -48,7 +48,7 @@ class roboBee(object):
     def __init__(self):
 
         self.state = np.array([0.0, 10.0, 0.0,   #position (x, y, z)
-                               0.0, 0.0, 0.0,   #velocity
+                               100.0, 0.0, 0.0,   #velocity
                                0.0, 1.0, 0.0,   #orientation (basically theta)
                                0.0, 0.0, 0.0])  #angular velocity
 

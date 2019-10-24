@@ -51,7 +51,7 @@ class roboBee(object):
         self.vel = np.array([0.0, 0.0, 0.0])
         self.accel = np.array([0.0, 0.0, 0.0])
         self.orientation = np.array([0.0, 1.0, 0.0])
-        self.angular_vel = np.array([1.0, 0.0, 0.0])
+        self.angular_vel = np.array([0.0, 0.0, 1.0])
         self.angular_accel = np.array([0.0, 0.0, 0.0])
 
     def normalize(self, x):
@@ -186,12 +186,15 @@ class roboBee(object):
             vel_data.append(np.linalg.norm(self.vel))
             aVel_data.append(np.linalg.norm(self.angular_vel))
         #print("hi", data)
-        a = np.linspace(0,10,len(vel_data))
-        plt.plot(a, vel_data, label='Velocity')
-        plt.plot(a, aVel_data, label='Angular Velocity')
+        a = np.linspace(0,self.dt*len(vel_data),len(vel_data))
+        plt.plot(a, vel_data, label='Velocity [m/s]')
+        plt.plot(a, aVel_data, label='Angular Velocity [rad/s]')
         plt.grid()
         plt.legend()
         plt.ylim(0, 1000)
+        plt.ylabel("Magnitude")
+        plt.xlabel("time [sec]")
+        plt.title("Input: angular vel=[0,0,1]")
         plt.show()
 
 

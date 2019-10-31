@@ -39,25 +39,31 @@ class roboBee(object):
                                           [0.0,             0.5,  -np.sqrt(0.75)]])
     sensor_orientations = INITIAL_SENSOR_ORIENTATIONS
 
-    """rework these intializer functions to make them more robust"""
-    def __init__(self, x_pos, y_pos, z_pos, orientation_xy, orientation_xz, orientation_yz):
-        self.pos = np.array([x_pos, y_pos, z_pos])
-        self.vel = np.array([0.0, 0.0, 0.0])
-        self.accel = np.array([0.0, 0.0, 0.0])
-        self.orientation = np.array([orientation_xy, orientation_xz, orientation_yz])
 
     def __init__(self):
-
         self.state = np.array([0.0, 10.0, 0.0,   #position (x, y, z)
-                               0.0, 10.0, 0.0,   #velocity
+                               0.0, 0.0, 0.0,   #velocity
                                0.0, 1.0, 0.0,   #orientation (basically theta)
-                               0.0, 0.0, 0.0])  #angular velocity
+                               0.0, 0.0, 1.0])  #angular velocity
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
         return normalized
 
+
     def update_state(self, u, dt):
+        """
+        This function generates translational and angular accelerations
+        based on the current state (position, orientation, velocities) of the
+        robot. It then uses these to calculate the new state_dot
+
+        u = current state (12 double numpy 1D array)
+            u[:3]  = position in global coordinates [m]
+            u[3:6] = velocity in inertial frame [m/s]
+            u[6:9] = orientation vector (in global coords)
+            u[9:]  = angular velocities about inertial reference frame [rad/sec]
+        dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
+        """
 
         state_dot = np.zeros(12)
 
@@ -71,17 +77,15 @@ class roboBee(object):
 
 
         torque_gen = np.array([0.0, 0.0, 0.0]) #the torque controller will generate this
-        #self.angular_accel = ((torque_gen - torque_drag + np.cross(self.R_w, drag_force)
-        #                    - np.cross(self.angular_vel, self.Jz*self.angular_vel))/self.Jz)
 
-
-        pizza = ((drag_force + self.LIFT) / self.MASS + gravity_inertial -
-                            np.cross(u[9:], u[3:6]))
 
         state_dot[:3] = u[3:6]     #derivative of position is velocity
         state_dot[6:9] = u[9:12]   #derivative of orientation is angular velocity
+
+        #TRANSLATIONAL ACCELERATION (in ineratial frame)
         state_dot[3:6] = ((drag_force + self.LIFT) / self.MASS + gravity_inertial -
                             np.cross(u[9:], u[3:6]))
+        #ROTATIONAL ACCELERATION (about inertial frame axes)
         state_dot[9:] = ((torque_gen - drag_torque + np.cross(self.R_w, drag_force)
                             - np.cross(u[9:], self.Jz*u[9:]))/self.Jz)
 
@@ -134,8 +138,9 @@ class roboBee(object):
             if(i%10 == 0):
                 print(i, "POS:", state[:3], "\t--ORIENTATION:", state[6:9], "\t--VEL:", state[3:6])
 
-            half_state = self.update_state(state, self.dt/2)
+            half_state = self.update_state(state.copy(), self.dt/2)
             state = self.update_state(half_state, self.dt)
+
             vel_data.append(np.linalg.norm(state[3:6]))
             aVel_data.append(np.linalg.norm(state[9:]))
 
@@ -144,7 +149,7 @@ class roboBee(object):
         plt.plot(a, aVel_data, label='Angular Velocity [rad/s]')
         plt.grid()
         plt.legend()
-        #plt.ylim(0, 1000)
+        plt.ylim(0, 1000)
         plt.ylabel("Magnitude")
         plt.xlabel("time [sec]")
         plt.title("Input: angular vel=[0,0,1]")

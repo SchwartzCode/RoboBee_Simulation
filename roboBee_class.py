@@ -81,6 +81,12 @@ class roboBee(object):
 
     def updateState(self):
 
+        #call function to update translational and rotational acceleration
+        #and then use the newly calculated accels to adjust velocity vectors
+        self.update_accels()
+        self.vel += self.dt*self.accel
+        self.angular_vel += self.dt*self.angular_accel
+
         #=== update position from velocity vector ===
         vel_global = np.zeros(3)
         for i in range(3):
@@ -108,17 +114,13 @@ class roboBee(object):
                 self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
             self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
 
-        #call function to update translational and rotational acceleration
-        #and then use the newly calculated accels to adjust velocity vectors
-        self.vel += self.dt*self.accel
-        self.angular_vel += self.dt*self.angular_accel
-        self.update_accels()
+
 
 
     def updateState_verbose(self):
         #SAME AS UPDATE STATE FUNCTION, JUST WITH LOTS OF INFO BEING PRINTED
         #TO THE CONSOLE FOR DEBUGGING
-        
+
         #update position based on velocity, must convert velocity from inertial
         #reference frame to global frame in order for position to make sense
         vel_global = np.zeros(3)
@@ -164,18 +166,18 @@ class roboBee(object):
     def run(self, timesteps):
         vel_data = [ np.linalg.norm(self.vel) ]
         aVel_data = [ np.linalg.norm(self.angular_vel)]
+
         for i in range(timesteps):
             if(self.pos[1] <= 0.0):
                 print("\n\nBANG BOOM CRASH OH NO!")
                 self.getState()
                 break
             if(i%10 == 0):
-                #np.append(data, [self.pos[0], self.pos[1]])
                 print(i, "POS:", self.pos, "\t--ORIENTATION:", self.orientation, "\t--VEL:", self.vel)
             self.updateState()
             vel_data.append(np.linalg.norm(self.vel))
             aVel_data.append(np.linalg.norm(self.angular_vel))
-        #print("hi", data)
+
         a = np.linspace(0,self.dt*len(vel_data),len(vel_data))
         plt.plot(a, vel_data, label='Velocity [m/s]')
         plt.plot(a, aVel_data, label='Angular Velocity [rad/s]')
@@ -215,8 +217,6 @@ class roboBee(object):
             print(self.sensor_readings[i], end=' -- ')
         print()
 
-    def newState(self):
-        print("calculating new state")
 
     def getState(self):
         print("===ROBOBEE STATE===")

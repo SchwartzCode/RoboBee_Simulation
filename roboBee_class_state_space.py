@@ -1,5 +1,6 @@
 import numpy as np
 from pyquaternion import Quaternion
+import matplotlib.pyplot as plt
 
 class roboBee(object):
     """  CONSTANTS & ROBOT SPECS   """
@@ -48,9 +49,9 @@ class roboBee(object):
     def __init__(self):
 
         self.state = np.array([0.0, 10.0, 0.0,   #position (x, y, z)
-                               100.0, 0.0, 0.0,   #velocity
+                               0.0, 0.0, 0.0,   #velocity
                                0.0, 1.0, 0.0,   #orientation (basically theta)
-                               0.0, 0.0, 0.0])  #angular velocity
+                               0.0, 0.0, 1.0])  #angular velocity
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
@@ -69,9 +70,6 @@ class roboBee(object):
                                         np.dot(gravity, self.inertial_frame[2])])
 
 
-        torque_drag = np.cross(-self.R_w, drag_force)
-
-
         torque_gen = np.array([0.0, 0.0, 0.0]) #the torque controller will generate this
         #self.angular_accel = ((torque_gen - torque_drag + np.cross(self.R_w, drag_force)
         #                    - np.cross(self.angular_vel, self.Jz*self.angular_vel))/self.Jz)
@@ -84,7 +82,7 @@ class roboBee(object):
         state_dot[6:9] = self.state[9:12]   #derivative of orientation is angular velocity
         state_dot[3:6] = ((drag_force + self.LIFT) / self.MASS + gravity_inertial -
                             np.cross(self.state[9:], self.state[3:6]))
-        state_dot[9:] = ((torque_gen - torque_drag + np.cross(self.R_w, drag_force)
+        state_dot[9:] = ((torque_gen - drag_torque + np.cross(self.R_w, drag_force)
                             - np.cross(self.state[9:], self.Jz*self.state[9:]))/self.Jz)
 
 
@@ -101,15 +99,14 @@ class roboBee(object):
 
         #calculate rotation from angular vels, then use quaternions to apply
         #them to orientation, sensors, and inertial frame
-        new_orientation = np.zeros(3, dtype = float)
         theta_vals = np.zeros(3, dtype=float)
-
         rot_exists = False
+
         for i in range(3):
             theta_vals[i] = self.dt*self.state[9+i] #calculate angle to rotate about orientaiton axes
-            if abs(theta_vals[i]) > self.ROTATION_MIN and rot_exists:
+            if rot_exists:
                 rotation = rotation * Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
-            elif abs(theta_vals[i]) > self.ROTATION_MIN:
+            else:
                 rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
                 rot_exists = True
 
@@ -135,15 +132,14 @@ class roboBee(object):
 
         #=== generate and apply rotations from angular velocities ===
             # rotates orientation, inertial frame, sensor vectors
-        new_orientation = np.zeros(3, dtype = float)
         theta_vals = np.zeros(3, dtype=float)
-
         rot_exists = False
+
         for i in range(3):
             theta_vals[i] = self.dt*self.angular_vel[i] #calculate angle to rotate about orientaiton axes
-            if abs(theta_vals[i]) > self.ROTATION_MIN and rot_exists:
+            if rot_exists:
                 rotation = rotation * Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
-            elif abs(theta_vals[i] > self.ROTATION_MIN):
+            else:
                 rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
                 rot_exists = True
 
@@ -207,7 +203,9 @@ class roboBee(object):
                 print(self.sensor_orientations)
 
     def run(self, timesteps):
-        #data = np.array(self.pos[0], self.pos[1])
+        vel_data = [ np.linalg.norm(self.vel) ]
+        aVel_data = [ np.linalg.norm(self.angular_vel)]
+
         for i in range(timesteps):
             if(self.state[1] <= 0.0):
                 print("\n\nBANG BOOM CRASH OH NO!")
@@ -217,7 +215,19 @@ class roboBee(object):
                 #np.append(data, [self.pos[0], self.pos[1]])
                 print(i, "POS:", self.state[:3], "\t--ORIENTATION:", self.state[6:9], "\t--VEL:", self.state[3:6])
             self.update_state_new()
-        #print("hi", data)
+            vel_data.append(np.linalg.norm(self.state[3:6]))
+            aVel_data.append(np.linalg.norm(self.state[9:]))
+
+        a = np.linspace(0,self.dt*len(vel_data),len(vel_data))
+        plt.plot(a, vel_data, label='Velocity [m/s]')
+        plt.plot(a, aVel_data, label='Angular Velocity [rad/s]')
+        plt.grid()
+        plt.legend()
+        plt.ylim(0, 1000)
+        plt.ylabel("Magnitude")
+        plt.xlabel("time [sec]")
+        plt.title("Input: angular vel=[0,0,1]")
+        plt.show()
 
 
 
@@ -247,8 +257,6 @@ class roboBee(object):
             print(self.sensor_readings[i], end=' -- ')
         print()
 
-    def newState(self):
-        print("calculating new state")
 
     def getState(self):
         print("===ROBOBEE STATE===")

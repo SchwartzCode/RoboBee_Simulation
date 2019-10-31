@@ -57,11 +57,11 @@ class roboBee(object):
         normalized = x / np.linalg.norm(x)
         return normalized
 
-    def update_state_new(self):
+    def update_state(self, u, dt):
 
         state_dot = np.zeros(12)
 
-        drag_force = -self.B_w*(self.state[3:6] + np.cross(self.state[9:], self.R_w))
+        drag_force = -self.B_w*(u[3:6] + np.cross(u[9:], self.R_w))
         drag_torque = np.cross(-self.R_w, drag_force)
 
         gravity = np.array([0.0, -self.g, 0.0])
@@ -76,26 +76,26 @@ class roboBee(object):
 
 
         pizza = ((drag_force + self.LIFT) / self.MASS + gravity_inertial -
-                            np.cross(self.state[9:], self.state[3:6]))
+                            np.cross(u[9:], u[3:6]))
 
-        state_dot[:3] = self.state[3:6]     #derivative of position is velocity
-        state_dot[6:9] = self.state[9:12]   #derivative of orientation is angular velocity
+        state_dot[:3] = u[3:6]     #derivative of position is velocity
+        state_dot[6:9] = u[9:12]   #derivative of orientation is angular velocity
         state_dot[3:6] = ((drag_force + self.LIFT) / self.MASS + gravity_inertial -
-                            np.cross(self.state[9:], self.state[3:6]))
+                            np.cross(u[9:], u[3:6]))
         state_dot[9:] = ((torque_gen - drag_torque + np.cross(self.R_w, drag_force)
-                            - np.cross(self.state[9:], self.Jz*self.state[9:]))/self.Jz)
+                            - np.cross(u[9:], self.Jz*u[9:]))/self.Jz)
 
 
-        self.state[3:6] += self.dt*state_dot[3:6]   #update vel based on acceleration
-        self.state[9:] += self.dt*state_dot[9:]     #update angular vel based on angular accel
+        u[3:6] += dt*state_dot[3:6]   #update vel based on acceleration
+        u[9:] += dt*state_dot[9:]     #update angular vel based on angular accel
 
 
         #=== convert vel from inertial frame to global ===
         vel_global = np.zeros(3)
         for i in range(3):
-            vel_global[i] = np.dot(self.state[3:6], self.GLOBAL_FRAME[i])
+            vel_global[i] = np.dot(u[3:6], self.GLOBAL_FRAME[i])
         #=== update position from velocity vector ===
-        self.state[:3] += self.dt*vel_global
+        u[:3] += dt*vel_global
 
         #calculate rotation from angular vels, then use quaternions to apply
         #them to orientation, sensors, and inertial frame
@@ -103,7 +103,7 @@ class roboBee(object):
         rot_exists = False
 
         for i in range(3):
-            theta_vals[i] = self.dt*self.state[9+i] #calculate angle to rotate about orientaiton axes
+            theta_vals[i] = dt*u[9+i] #calculate angle to rotate about orientaiton axes
             if rot_exists:
                 rotation = rotation * Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
             else:
@@ -111,112 +111,32 @@ class roboBee(object):
                 rot_exists = True
 
         if rot_exists:
-            self.state[6:9] = rotation.rotate(self.state[6:9])
+            u[6:9] = rotation.rotate(u[6:9])
             for j in range(3):
                 self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
                 self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
             self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
 
+        return u
 
-
-
-    def updateState_old(self):
-
-        #=== update position from velocity vector ===
-        vel_global = np.zeros(3)
-        for i in range(3):
-            vel_global[i] = np.dot(self.vel, self.GLOBAL_FRAME[i])
-        #print("AAAAA   ", self.vel)
-        self.pos = self.pos + self.dt*vel_global
-
-
-        #=== generate and apply rotations from angular velocities ===
-            # rotates orientation, inertial frame, sensor vectors
-        theta_vals = np.zeros(3, dtype=float)
-        rot_exists = False
-
-        for i in range(3):
-            theta_vals[i] = self.dt*self.angular_vel[i] #calculate angle to rotate about orientaiton axes
-            if rot_exists:
-                rotation = rotation * Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
-            else:
-                rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
-                rot_exists = True
-
-        if rot_exists:
-            self.orientation = rotation.rotate(self.orientation)
-            for j in range(3):
-                self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
-                self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
-            self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
-
-
-        #call function to update translational and rotational acceleration
-        #and then use the newly calculated accels to adjust velocity vectors
-        self.vel = self.vel + self.dt*self.accel
-        self.angular_vel = self.dt*self.angular_accel
-        self.update_accels()
-
-
-
-    def updateState_verbose(self):
-        #update position based on velocity, must convert velocity from inertial
-        #reference frame to global frame in order for position to make sense
-        vel_global = np.zeros(3)
-        for i in range(3):
-            vel_global[i] = np.dot(self.vel, self.GLOBAL_FRAME[i])
-        self.pos = self.pos + self.dt*vel_global
-
-        new_orientation = np.zeros(3, dtype = float)
-        theta_vals = np.zeros(3, dtype=float)
-
-        for i in range(3):
-            theta_vals[i] = self.dt*self.angular_vel[i]
-
-
-        for i in range(3):
-            if abs(theta_vals[i]) > 0.01:
-                print("=== BEFORE ROTATING ===")
-                print("Orientation: ", self.orientation)
-                print("Inertial Frame: ")
-                print(self.inertial_frame)
-                print("Sensors: ")
-                print(self.sensor_orientations)
-
-                rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
-
-                self.orientation = rotation.rotate(self.orientation)
-                for j in range(3):
-                    self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
-                    self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
-                self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
-
-
-                if theta_vals[i] > self.ROTATION_MIN:
-                    print("\nAngle: ", theta_vals[i], "Axis: ", i, "\n")
-
-                print("=== AFTER ROTATING ===")
-                print("Orientation: ", self.orientation)
-                print("Inertial Frame: ")
-                print(self.inertial_frame)
-                print("Sensors: ")
-                print(self.sensor_orientations)
 
     def run(self, timesteps):
-        vel_data = [ np.linalg.norm(self.vel) ]
-        aVel_data = [ np.linalg.norm(self.angular_vel)]
+        vel_data = [ np.linalg.norm(self.state[3:6]) ]
+        aVel_data = [ np.linalg.norm(self.state[9:])]
+        state = self.state.copy()
 
         for i in range(timesteps):
-            if(self.state[1] <= 0.0):
+            print(state)
+            if(state[1] <= 0.0):
                 print("\n\nBANG BOOM CRASH OH NO!")
+                self.state = state
                 self.getState()
                 break
             if(i%10 == 0):
-                #np.append(data, [self.pos[0], self.pos[1]])
-                print(i, "POS:", self.state[:3], "\t--ORIENTATION:", self.state[6:9], "\t--VEL:", self.state[3:6])
-            self.update_state_new()
-            vel_data.append(np.linalg.norm(self.state[3:6]))
-            aVel_data.append(np.linalg.norm(self.state[9:]))
+                print(i, "POS:", state[:3], "\t--ORIENTATION:", state[6:9], "\t--VEL:", state[3:6])
+            state = self.update_state(state, self.dt)
+            vel_data.append(np.linalg.norm(state[3:6]))
+            aVel_data.append(np.linalg.norm(state[9:]))
 
         a = np.linspace(0,self.dt*len(vel_data),len(vel_data))
         plt.plot(a, vel_data, label='Velocity [m/s]')

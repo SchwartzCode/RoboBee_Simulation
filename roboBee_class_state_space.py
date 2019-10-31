@@ -49,9 +49,9 @@ class roboBee(object):
     def __init__(self):
 
         self.state = np.array([0.0, 10.0, 0.0,   #position (x, y, z)
-                               0.0, 0.0, 0.0,   #velocity
+                               0.0, 10.0, 0.0,   #velocity
                                0.0, 1.0, 0.0,   #orientation (basically theta)
-                               0.0, 0.0, 1.0])  #angular velocity
+                               0.0, 0.0, 0.0])  #angular velocity
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
@@ -126,7 +126,6 @@ class roboBee(object):
         state = self.state.copy()
 
         for i in range(timesteps):
-            print(state)
             if(state[1] <= 0.0):
                 print("\n\nBANG BOOM CRASH OH NO!")
                 self.state = state
@@ -134,7 +133,9 @@ class roboBee(object):
                 break
             if(i%10 == 0):
                 print(i, "POS:", state[:3], "\t--ORIENTATION:", state[6:9], "\t--VEL:", state[3:6])
-            state = self.update_state(state, self.dt)
+
+            half_state = self.update_state(state, self.dt/2)
+            state = self.update_state(half_state, self.dt)
             vel_data.append(np.linalg.norm(state[3:6]))
             aVel_data.append(np.linalg.norm(state[9:]))
 
@@ -143,7 +144,7 @@ class roboBee(object):
         plt.plot(a, aVel_data, label='Angular Velocity [rad/s]')
         plt.grid()
         plt.legend()
-        plt.ylim(0, 1000)
+        #plt.ylim(0, 1000)
         plt.ylabel("Magnitude")
         plt.xlabel("time [sec]")
         plt.title("Input: angular vel=[0,0,1]")

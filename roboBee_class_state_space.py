@@ -97,10 +97,11 @@ class roboBee(object):
         #=== convert vel from inertial frame to global ===
         vel_global = np.zeros(3)
         for i in range(3):
-            vel_global[i] = np.dot(u[3:6], self.GLOBAL_FRAME[i])
+            for j in range(3):
+                vel_global[i] += u[3+i]*np.dot(self.inertial_frame[j], self.GLOBAL_FRAME[i])
         #=== update position from velocity vector ===
         u[:3] += dt*vel_global
-
+        
         #calculate rotation from angular vels, then use quaternions to apply
         #them to orientation, sensors, and inertial frame
         theta_vals = np.zeros(3, dtype=float)

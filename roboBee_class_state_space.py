@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 class roboBee(object):
     """  CONSTANTS & ROBOT SPECS   """
-    TORQUE_CONTROLLER_CONSTANT = 0.9e-7
+    TORQUE_CONTROLLER_CONSTANT = 1.2e-7
     B_w = 0.0002 #drag constant [Ns/m]
     R_w = np.array([0.0, 0.009, 0.0]) #z distance between center of mass and wings [m]
     MASS = 0.08 #mass [g]
@@ -31,7 +31,7 @@ class roboBee(object):
 
 
     dt = 1/120 #1/120 #time step in seconds; represents one step at 120 Hz
-    light_source_loc = np.array([0.0, 0.0, 1000.0]) #location of light source [mm]
+    light_source_loc = np.array([0.0, 1000.0, 0.0]) #location of light source [mm]
     sensor_readings = np.array([0.0, 0.0, 0.0, 0.0]) #current flowing from phototransistors, between 1.1mA and 100 nA
     INITIAL_SENSOR_ORIENTATIONS = np.array([ [np.sqrt(0.75),   0.5,  0.0], #vectors normal to each sensor face at initial orientation (x,y,z)
                                           [0.0,             0.5,  np.sqrt(0.75)],
@@ -42,9 +42,9 @@ class roboBee(object):
 
     def __init__(self):
         self.state = np.array([0.0, 10.0, 0.0,   #position (x, y, z)
-                               0.0, 0.0, 0.0,   #velocity
+                               0.0, -0.1, 0.0,   #velocity
                                0.0, 1.0, 0.0,   #orientation (basically theta)
-                               0.0, 0.0, 1.0])  #angular velocity
+                               0.0, 0.0, 0.0])  #angular velocity
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
@@ -137,7 +137,13 @@ class roboBee(object):
                 self.getState()
                 break
             if(i%10 == 0):
+                self.readSensors()
                 print(i, "POS:", state[:3], "\t--ORIENTATION:", state[6:9], "\t--VEL:", state[3:6])
+            if(i%500 == 0 and i != 0):
+                #adding in aVel at set intervals to evaluate torque controller
+                print("OOGA BOOGA")
+                state[-1] = 10.0
+                print(state)
 
             half_state = self.update_state(state.copy(), self.dt/2)
             state = self.update_state(half_state, self.dt)
@@ -153,7 +159,7 @@ class roboBee(object):
         #plt.ylim(0, 1000)
         plt.ylabel("Magnitude")
         plt.xlabel("time [sec]")
-        plt.title("Input: angular vel=[0,0,1]")
+        plt.title("k = {0:.1e}".format(self.TORQUE_CONTROLLER_CONSTANT))
         plt.show()
 
 
@@ -177,12 +183,20 @@ class roboBee(object):
         for i in range(len(self.sensor_readings)):
             #finding angle between light rays and vectors normal to each sensor's surface
             #sensor_vec = (add robot orientation and sensor vectors)
-            angle = np.arccos(np.dot(self.sensor_positions[i], self.light_vec) /
-                              (np.linalg.norm(self.sensor_positions[i] * np.linalg.norm(self.light_vec))))
-            self.sensor_readings[i] = angle
+            light_output = 850 #output of light in lumens
+
+            angle = np.arccos(np.dot(self.sensor_orientations[i], self.light_vec) /
+                              (np.linalg.norm(self.sensor_orientations[i] * np.linalg.norm(self.light_vec))))
+            #self.sensor_readings[i] = angle
+
+            illuminance = np.sin(angle)*light_output
+            current = illuminance / 1000.0 #rough estimate for current from datasheet
+                                           #where 1000 lux = 1 mA
+            self.sensor_readings[i] = current
 
             print(self.sensor_readings[i], end=' -- ')
         print()
+
 
 
     def getState(self):

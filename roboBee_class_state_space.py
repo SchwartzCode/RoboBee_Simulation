@@ -51,6 +51,35 @@ class roboBee(object):
         normalized = x / np.linalg.norm(x)
         return normalized
 
+    def real_state_space(self, u, dt):
+        """
+        This function will calculate the new state using the current state
+        and only a large matrix of coefficients, this is necessary
+        in order to use LQR control.
+
+        This is what state space is like, where x_dot is deriv of x, which is the
+        state vector, i is the input vector, and A and B are coefficient matrices:
+
+                            x_dot = A*x + B*i
+
+
+        ==== ARGUMENTS ====
+        u = current state (12 double numpy 1D array)
+            u[:3]  = position in global coordinates [m]
+            u[3:6] = velocity in inertial frame [m/s]
+            u[6:9] = orientation vector (in global coords)
+            u[9:]  = angular velocities about inertial reference frame [rad/sec]
+        dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
+        """
+
+        A = np.zeros((12, 12))
+        A[0,3] = 1
+        A[1,4] = 1
+        A[2,5] = 1
+
+
+        return u
+
 
     def update_state(self, u, dt):
         """
@@ -76,7 +105,7 @@ class roboBee(object):
         """
 
 
-
+        #this ensures the robot's altitude doesn't get too low or high
         if u[1] < 10.0 and not self.increased:
             self.LIFT *= 1.003
             self.increased = True

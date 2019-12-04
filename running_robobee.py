@@ -14,4 +14,8 @@ tester = roboBee()
 #tester.updateState()
 #print(tester.orientation)
 
-tester.run(10000)
+#tester.run(10000)
+
+test = np.zeros((6,6))
+test[0,3] = 5
+print(test)

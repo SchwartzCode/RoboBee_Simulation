@@ -16,6 +16,11 @@ tester = roboBee()
 
 #tester.run(10000)
 
-test = np.zeros((6,6))
-test[0,3] = 5
-print(test)
+u_empty = np.zeros(12)
+dt = 1 / 120
+tester.real_state_space(u_empty, dt)
+
+
+#test = np.zeros((6,6))
+#test[0,3] = 5
+#print(test)

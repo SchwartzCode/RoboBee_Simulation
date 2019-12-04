@@ -73,9 +73,17 @@ class roboBee(object):
         """
 
         A = np.zeros((12, 12))
+        #Derivative of position is velocity
         A[0,3] = 1
         A[1,4] = 1
         A[2,5] = 1
+        #Derivative of angular position is angular velocity
+        A[6,9] = 1
+        A[7,10] = 1
+        A[8,11] = 1
+
+        print(A)
+
 
 
         return u

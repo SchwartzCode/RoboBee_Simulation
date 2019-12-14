@@ -103,15 +103,6 @@ class roboBee(object):
         dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
         """
 
-        """
-        # this isn't working how I'd like, will come back to it
-        increased = False
-        if u[1] < 10.0 and not increased:
-            self.LIFT *= 1.01
-        elif u[1] > 20.0 and increased:
-            self.LIFT /= 1.01
-        """
-
 
         #this ensures the robot's altitude doesn't get too low or high
         if u[1] < 10.0 and not self.increased:

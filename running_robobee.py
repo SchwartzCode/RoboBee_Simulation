@@ -16,6 +16,10 @@ tester = roboBee()
 
 #tester.run(10000)
 
+
+a1 = np.array([0, 1, 0])
+a2 = np.array([np.sqrt(2)/2, np.sqrt(2)/2, 0])
+print(np.dot(a1, a2))
 u_empty = np.zeros(12)
 dt = 1 / 120
 tester.real_state_space(u_empty, dt)

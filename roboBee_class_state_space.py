@@ -43,9 +43,9 @@ class roboBee(object):
 
     def __init__(self):
         self.state = np.array([0.0, 10.0, 0.0,   #position (x, y, z)
-                               0.0, -0.1, 0.0,   #velocity
+                               0.0, 0.0, 0.0,   #velocity
                                0.0, 1.0, 0.0,   #orientation (basically theta)
-                               0.0, 0.0, 0.0])  #angular velocity
+                               1.0, 0.0, 0.0])  #angular velocity
 
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
@@ -176,6 +176,7 @@ class roboBee(object):
     def run(self, timesteps):
         vel_data = [ np.linalg.norm(self.state[3:6]) ]
         aVel_data = [ np.linalg.norm(self.state[9:])]
+        orientation_angle = [ self.state[7] ]
         state = self.state.copy()
 
         for i in range(timesteps):
@@ -188,6 +189,7 @@ class roboBee(object):
                 self.readSensors()
                 print(i, "POS:", state[:3], "\t--ORIENTATION:", state[6:9], "\t--VEL:", state[3:6])
             if i%500 == 0 and i != 0:
+                state[-1] = 2.0
                 print("OOGA BOOGA")
                 print(state)
 
@@ -196,6 +198,7 @@ class roboBee(object):
 
             vel_data.append(np.linalg.norm(state[3:6]))
             aVel_data.append(np.linalg.norm(state[9:]))
+            orientation_angle.append(state[7])
 
         a = np.linspace(0,self.dt*len(vel_data),len(vel_data))
         plt.plot(a, vel_data, label='Velocity [m/s]')
@@ -208,6 +211,11 @@ class roboBee(object):
         plt.title("k = {0:.1e}".format(self.TORQUE_CONTROLLER_CONSTANT))
         plt.show()
 
+        plt.plot(a, orientation_angle)
+        plt.title("Angle of Orientation versus Initial Position")
+        plt.xlabel("Time [sec]")
+        plt.ylabel("Angle [rad]")
+        plt.show()
 
     def lateralController(self):
         """calculate output of lateral controller and apply it"""

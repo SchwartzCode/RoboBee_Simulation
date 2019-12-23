@@ -4,12 +4,13 @@ import matplotlib.pyplot as plt
 
 class roboBee(object):
     """  CONSTANTS & ROBOT SPECS   """
-    TORQUE_CONTROLLER_CONSTANT = 1.2e-7
+    TORQUE_CONTROLLER_CONSTANT = 0.9e-7
     B_w = 0.0002 #drag constant [Ns/m]
-    R_w = np.array([0.0, 0.009, 0.0]) #z distance between center of mass and wings [m]
+    Rw = 0.009
+    R_w = np.array([0.0, Rw, 0.0]) #z distance between center of mass and wings [m]
     MASS = 0.08 #mass [g]
     g = 9.81 #gravity
-    Jz = 1.42e-9 #Z Axis Rotational Moment of Inertia [kg*m^2]
+    Jz = 0.45e-9 #Z Axis Rotational Moment of Inertia [kg*m^2]
     FLAPPING_FREQ = 120.0 #[Hz]
     WING_LENGTH = 15.0 #[mm]
     MEAN_CHORD_LENGTH = 3.46 #[mm]
@@ -81,6 +82,10 @@ class roboBee(object):
         A[6,9] = 1
         A[7,10] = 1
         A[8,11] = 1
+
+        #Angular Acceleration terms
+        A[9,5] = self.Rw / self.Jz
+        A[9,9] = self.Rw**2 / self.Jz
 
         print(A)
 
@@ -189,7 +194,7 @@ class roboBee(object):
                 self.readSensors()
                 print(i, "POS:", state[:3], "\t--ORIENTATION:", state[6:9], "\t--VEL:", state[3:6])
             if i%500 == 0 and i != 0:
-                state[-1] = 2.0
+                state[-3] = 15.0
                 print("OOGA BOOGA")
                 print(state)
 

@@ -66,14 +66,17 @@ class roboBee(object):
 
         ==== ARGUMENTS ====
         u = current state (12 double numpy 1D array)
-            u[:3]  = position in global coordinates [m]
+            u[:3]  = position in inertialcoordinates [m]
+                    ~~ probably going to adjust this because I don't think it will ~~
+                    ~~ provide any useful info as of now, changes TBD ~~
             u[3:6] = velocity in inertial frame [m/s]
-            u[6:9] = orientation vector (in global coords)
+            u[6:9] = euler angles defining rotation relative to intiial position
             u[9:]  = angular velocities about inertial reference frame [rad/sec]
         dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
         """
 
         A = np.zeros((12, 12))
+        B = np.zeros((12,3))
         #Derivative of position is velocity
         A[0,3] = 1
         A[1,4] = 1
@@ -83,11 +86,20 @@ class roboBee(object):
         A[7,10] = 1
         A[8,11] = 1
 
-        #Angular Acceleration terms
+        #Calculating Angular Acceleration terms
         A[9,5] = self.Rw / self.Jz
         A[9,9] = self.Rw**2 / self.Jz
 
+        A[11,3] = -self.Rw / self.Jz
+        A[11,11] = self.Rw**2 / self.Jz
+
+        #Adding torque inputs to angular acceleration terms
+        B[9,0] = 1 / self.Jz
+        B[10,1] = 1 / self.Jz
+        B[11,2] = 1 / self.Jz
+
         print(A)
+        print(B)
 
 
 

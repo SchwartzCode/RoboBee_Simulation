@@ -85,11 +85,11 @@ class roboBee(object):
         A[3,5] = 1
 
         # V_x_dot terms
-        A[4,0] = self.g*(self.LIFT_COEFFICIENT - 1)
+        A[4,0] = self.g*self.LIFT_COEFFICIENT
         A[4,4] = -self.B_w
 
         # Theta_dot term(s)
-        A[1,4] = -self.R_w*self.B_w
+        A[1,4] = -self.R_w*self.B_w / self.J_z
 
         #Note: There are no terms in the A matrix for V_z_dot because that is
         #   controlled by the altitude controller which is decoupled from this

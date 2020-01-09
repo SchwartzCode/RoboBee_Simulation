@@ -53,7 +53,7 @@ class roboBee(object):
         normalized = x / np.linalg.norm(x)
         return normalized
 
-    def real_state_space(self, u, dt):
+    def real_state_space(self, state, dt):
         """
         This function will calculate the new state using the current state
         and only a large matrix of coefficients, this is necessary
@@ -66,15 +66,22 @@ class roboBee(object):
 
 
         ==== ARGUMENTS ====
-        u = current state (12 double numpy 1D array)
-            u[0] = theta (angle of rotation from intertial to global coords in 2D)
-            u[1] = theta_dot (change in theta per unit time)
-            u[2] = x axis position in global coordinates
-            u[3] = z axis position in global coordinates
-            u[4] = x_dot (x axis velocity)
-            u[5] = z_dot (z axis velocity)
+        state = current state (12 double numpy 1D array)
+            state[0] = theta (angle of rotation from intertial to global coords in 2D)
+            state[1] = theta_dot (change in theta per unit time)
+            state[2] = x axis position in global coordinates
+            state[3] = z axis position in global coordinates
+            state[4] = x_dot (x axis velocity)
+            state[5] = z_dot (z axis velocity)
         dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
         """
+
+        #This is an 'input' because the torque controller is proportional to theta_dot
+        #    In the future this will be elsewhere, just keeping it to evaluate
+        #    This controller against the analytical one I made
+        u = np.zeros(6)
+        print("u: ", u, "\nstate: ", state)
+        u[1] = state[1]
 
         A = np.zeros((6, 6))
         B = np.zeros(6)
@@ -89,7 +96,7 @@ class roboBee(object):
         A[4,4] = -self.B_w
 
         # Theta_dot term(s)
-        A[1,4] = -self.R_w*self.B_w / self.J_z
+        A[1,4] = -self.Rw*self.B_w / self.Jz
 
         #Note: There are no terms in the A matrix for V_z_dot because that is
         #   controlled by the altitude controller which is decoupled from this
@@ -100,26 +107,15 @@ class roboBee(object):
         #controller that keeps robot upright)
         B[1] = -self.TORQUE_CONTROLLER_CONSTANT
 
-        """
-        #Calculating Angular Acceleration terms
-        A[9,5] = self.Rw / self.Jz
-        A[9,9] = self.Rw**2 / self.Jz
 
-        A[11,3] = -self.Rw / self.Jz
-        A[11,11] = self.Rw**2 / self.Jz
+        #print(A)
+        #print(B)
 
-        #Adding torque inputs to angular acceleration terms
-        B[9,0] = 1 / self.Jz
-        B[10,1] = 1 / self.Jz
-        B[11,2] = 1 / self.Jz
-        """
+        state_dot = A.dot(state) + B.dot(u)
 
-        print(A)
-        print(B)
+        new_state = state + state_dot * dt
 
-
-
-        return u
+        return new_state
 
 
     def update_state(self, u, dt):
@@ -204,6 +200,41 @@ class roboBee(object):
             self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
 
         return u
+
+
+    def run_real_state_space(self, timesteps):
+        state = np.zeros(6)
+        state[3] = 10.0 #setting robobee height so it doesn't immeadiately crash
+        state[1] = 1.0
+        vel_data = [ np.linalg.norm(state[4:]) ]
+        aVel_data = [ state[1] ]
+
+        for i in range(timesteps):
+            print(i, ":\t", state)
+
+
+            if(state[3] <= 0.0):
+                print("\n\nBANG BOOM CRASH OH NO!")
+                print(state)
+                break
+
+
+            state = self.real_state_space(state.copy(), self.dt)
+
+            vel_data.append(np.linalg.norm(state[4:]))
+            aVel_data.append(state[1])
+
+        t = np.linspace(0, self.dt*len(vel_data), len(vel_data))
+
+        plt.plot(t, vel_data, label='Velocity [m/s]')
+        plt.plot(t, aVel_data, label='Angular Velocity [rad/s]')
+        plt.grid()
+        plt.legend()
+        #plt.ylim(0, 1000)
+        plt.ylabel("Magnitude")
+        plt.xlabel("time [sec]")
+        plt.title("k = {0:.1e}".format(self.TORQUE_CONTROLLER_CONSTANT))
+        plt.show()
 
 
     def run(self, timesteps):

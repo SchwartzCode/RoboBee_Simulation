@@ -23,7 +23,7 @@ tester.real_state_space(u_empty, dt)
 """
 
 
-tester.run_real_state_space(1000)
+tester.run_real_state_space(4600)
 
 #test = np.zeros((6,6))
 #test[0,3] = 5

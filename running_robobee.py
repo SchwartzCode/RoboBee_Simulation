@@ -23,4 +23,4 @@ tester.real_state_space(u_empty, dt)
 """
 
 
-tester.run_real_state_space(500)
+tester.run_real_state_space(2000)

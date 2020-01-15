@@ -226,8 +226,6 @@ class roboBee(object):
             elif(i % 250 == 0):
                 state[1] = 1
 
-            state = self.real_state_space(state.copy(), self.dt)
-
             half_state = self.real_state_space(state.copy(), self.dt/2)
             state = self.real_state_space(half_state, self.dt)
             #state[0] = state[0] % 2*np.pi

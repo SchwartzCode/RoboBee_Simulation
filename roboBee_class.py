@@ -1,3 +1,12 @@
+"""
+THIS FILE IS NO LONGER IN USE
+PLEASE SEE "roboBee_class_state_space.py" FOR
+THE NEWEST VERSION OF THIS CODE
+
+THANK YOU AND FEEL FREE TO REACH OUT TO JONATHAN SCHWARTZ (writer of this program)
+WITH ANY QUESTIONS AT:     jonbs98@gmail.com
+"""
+
 import numpy as np
 from pyquaternion import Quaternion
 import matplotlib.pyplot as plt

@@ -1,7 +1,7 @@
 import numpy as np
 from pyquaternion import Quaternion
 import matplotlib.pyplot as plt
-import scipy
+from scipy import *
 
 class roboBee(object):
     """  CONSTANTS & ROBOT SPECS   """
@@ -26,12 +26,6 @@ class roboBee(object):
     increased = False
 
 
-    pos = np.array([0.0, 0.0, 0.0]) #(x,y,z) position coords [m]
-    vel = np.array([0.0, 0.0, 0.0]) #(x,y,z) velocity components [m/s]
-    accel = np.array([0.0, 0.0, 0.0]) #(x,y,z) acceleration components [m^2/s]
-    INITIAL_ORIENTATION = np.array([0.0, 1.0, 0.0]) #orientation vector of robot if it is pointing straight upwards (x, y, z)
-    angular_vel = np.zeros(3) #velocity of robot in (x, y, z) [rad/s]
-    angular_accel = np.zeros(3)
 
 
     dt = 1/120 #1/120 #time step in seconds; represents one step at 120 Hz
@@ -125,7 +119,7 @@ class roboBee(object):
         return new_state
 
 
-    def dlqr(A,B,Q,R):
+    def dlqr(self,A,B,Q,R):
         """
         NOTE: I did not come up with this function myself, I borrowed it from
         Solve the discrete time lqr controller.
@@ -205,13 +199,23 @@ class roboBee(object):
         B[1,1] = 1 / self.Jz
 
         Q = np.identity(6)
+        #impose larger penalty on theta and theta_dot for deviating than position
+        #because these deviating will cause robot to become unstable and state will diverge
+        Q[0,0] = 100
+        Q[1,1] = 100
+
+        R = 0.001
 
 
-        gains, ricatti, eigs = dlqr(A, B, Q, R)
+        gains, ricatti, eigs = self.dlqr(A, B, Q, R)
 
         state_dot = (A - B*K) * state   #Unclear if this should be included here, will investigate:   + B*K*state_desired
 
         new_state = A + B * gains
+
+        print(state_dot, "\n")
+        print(new_state, "\n")
+        print(gains)
 
         return new_state
 

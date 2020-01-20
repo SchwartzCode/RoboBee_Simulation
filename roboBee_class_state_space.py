@@ -1,6 +1,7 @@
 import numpy as np
 from pyquaternion import Quaternion
 import matplotlib.pyplot as plt
+import scipy
 
 class roboBee(object):
     """  CONSTANTS & ROBOT SPECS   """
@@ -123,7 +124,30 @@ class roboBee(object):
 
         return new_state
 
-    def updateState_LQR_Control(self, state, dt):
+
+    def dlqr(A,B,Q,R):
+        """
+        NOTE: I did not come up with this function myself, I borrowed it from
+        Solve the discrete time lqr controller.
+
+        x[k+1] = A x[k] + B u[k]
+
+        cost = sum x[k].T*Q*x[k] + u[k].T*R*u[k]
+        """
+        #ref Bertsekas, p.151
+
+        #first, try to solve the ricatti equation
+        X = np.matrix(scipy.linalg.solve_discrete_are(A, B, Q, R))
+
+        #compute the LQR gain
+        K = np.matrix(scipy.linalg.inv(B.T*X*B+R)*(B.T*X*A))
+
+        eigVals, eigVecs = scipy.linalg.eig(A-B*K)
+
+        return K, X, eigVals
+
+
+    def updateState_LQR_Control(self, state, dt, state_desired):
         """
         This function will calculate the new state using the current state
         and only a large matrix of coefficients, this is necessary
@@ -180,13 +204,14 @@ class roboBee(object):
         B[1,0] = 1 / self.Jz
         B[1,1] = 1 / self.Jz
 
+        Q = np.identity(6)
 
-        #print(A)
-        #print(B)
 
-        state_dot = A.dot(state) + B.dot(u)
+        gains, ricatti, eigs = dlqr(A, B, Q, R)
 
-        new_state = state.copy() + state_dot.copy() * dt
+        state_dot = (A - B*K) * state   #Unclear if this should be included here, will investigate:   + B*K*state_desired
+
+        new_state = A + B * gains
 
         return new_state
 

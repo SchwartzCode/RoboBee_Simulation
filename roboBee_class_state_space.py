@@ -1,7 +1,7 @@
 import numpy as np
-import quaternion as Quaternion
+import quaternion #95% sure I no longer need this, going to leave it for a bit just in case
 import matplotlib.pyplot as plt
-#from scipy import *
+import math
 import control
 
 class roboBee(object):
@@ -48,6 +48,27 @@ class roboBee(object):
     def normalize(self, x):
         normalized = x / np.linalg.norm(x)
         return normalized
+
+    def rotation_matrix(self, axis, theta):
+        """
+        Return the rotation matrix associated with counterclockwise rotation about
+        the given axis by theta radians.
+
+        I DID NOT MAKE THIS, FOUND IT ON STACKOVERFLOW. LINK:
+        https://stackoverflow.com/questions/6802577/rotation-of-3d-vector
+        """
+        axis = np.asarray(axis)
+        axis = axis / math.sqrt(np.dot(axis, axis))
+        a = math.cos(theta / 2.0)
+        b, c, d = -axis * math.sin(theta / 2.0)
+        aa, bb, cc, dd = a * a, b * b, c * c, d * d
+        bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
+
+        return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
+                         [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
+                         [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
+
+
 
     def updateState_PD_Control(self, state, dt):
         """
@@ -291,9 +312,9 @@ class roboBee(object):
         for i in range(3):
             theta_vals[i] = dt*u[9+i] #calculate angle to rotate about orientaiton axes
             if rot_exists:
-                rotation = rotation * np.quaternion(self.inertial_frame[i], theta_vals[i])
+                rotation = np.dot(rotation, self.rotation_matrix(self.inertial_frame[i], theta_vals[i]))
             else:
-                rotation = np.qaternion(self.inertial_frame[i], theta_vals[i])
+                rotation = self.rotation_matrix(self.inertial_frame[i], theta_vals[i])
                 rot_exists = True
 
         """
@@ -303,11 +324,11 @@ class roboBee(object):
         """
 
         if rot_exists:
-            u[6:9] = rotation.rotate(u[6:9])
+            u[6:9] = np.dot(rotation,(u[6:9]))
             for j in range(3):
-                self.inertial_frame[j] = rotation.rotate(self.inertial_frame[j])
-                self.sensor_orientations[j] = rotation.rotate(self.sensor_orientations[j])
-            self.sensor_orientations[3] = rotation.rotate(self.sensor_orientations[3])
+                self.inertial_frame[j] = np.dot(rotation, self.inertial_frame[j])
+                self.sensor_orientations[j] = np.dot(rotation, self.sensor_orientations[j])
+            self.sensor_orientations[3] = np.dot(rotation, self.sensor_orientations[3])
 
         return u
 
@@ -405,10 +426,6 @@ class roboBee(object):
         plt.ylabel("Angle [rad]")
         plt.show()
         """
-
-    def lateralController(self):
-        """calculate output of lateral controller and apply it"""
-        print('lat control')
 
     def readSensors(self, state):
         self.light_vec = np.subtract(self.light_source_loc, state[0:3])

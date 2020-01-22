@@ -1,7 +1,8 @@
 import numpy as np
-from pyquaternion import Quaternion
+import quaternion as Quaternion
 import matplotlib.pyplot as plt
-from scipy import *
+#from scipy import *
+import control
 
 class roboBee(object):
     """  CONSTANTS & ROBOT SPECS   """
@@ -207,9 +208,9 @@ class roboBee(object):
         R = 0.001
 
 
-        gains, ricatti, eigs = self.dlqr(A, B, Q, R)
+        gains, ricatti, eigs = control.lqr(A, B, Q, R)
 
-        state_dot = (A - B*K) * state   #Unclear if this should be included here, will investigate:   + B*K*state_desired
+        state_dot = (A - B*gains) * state   #Unclear if this should be included here, will investigate:   + B*K*state_desired
 
         new_state = A + B * gains
 
@@ -346,6 +347,9 @@ class roboBee(object):
 
 
     def run_analytical(self, timesteps):
+        """
+        THIS NEEDS TO BE RECONFIGURED TO WORK WITH THE NEW QUATERNION LIBRARY
+        """
         vel_data = [ np.linalg.norm(self.state[3:6]) ]
         aVel_data = [ np.linalg.norm(self.state[9:])]
         orientation_angle = [ self.state[7] ]
@@ -358,7 +362,7 @@ class roboBee(object):
                 self.getState()
                 break
             if(i%10 == 0):
-                self.readSensors()
+                self.readSensors(state)
                 print(i, "POS:", state[:3], "\t--ORIENTATION:", state[6:9], "\t--VEL:", state[3:6])
             if i%500 == 0 and i != 0:
                 #this conditional occasionally varies angular vel to validate functionality
@@ -400,8 +404,8 @@ class roboBee(object):
         """calculate output of lateral controller and apply it"""
         print('lat control')
 
-    def readSensors(self):
-        self.light_vec = np.subtract(self.light_source_loc, self.pos)
+    def readSensors(self, state):
+        self.light_vec = np.subtract(self.light_source_loc, state[0:3])
         self.light_vec = self.normalize(self.light_vec)
         print(self.light_vec)
 

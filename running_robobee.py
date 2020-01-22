@@ -23,8 +23,7 @@ tester.real_state_space(u_empty, dt)
 """
 
 
-#tester.run_real_state_space(1000)
-#tester.run(1000)
+
 u_test = np.array([0, 0, 0, 10, 0, 0])
 dt = 1/120
 u_des = np.array([0, 0, 10, 10, 0, 0])

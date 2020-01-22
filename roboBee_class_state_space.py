@@ -3,6 +3,7 @@ import quaternion #95% sure I no longer need this, going to leave it for a bit j
 import matplotlib.pyplot as plt
 import math
 import control
+import scipy
 
 class roboBee(object):
     """  CONSTANTS & ROBOT SPECS   """
@@ -143,7 +144,7 @@ class roboBee(object):
 
     def dlqr(self,A,B,Q,R):
         """
-        NOTE: I did not come up with this function myself, I borrowed it from
+        NOTE: I did not come up with this function myself, I borrowed it from stack overflow
         Solve the discrete time lqr controller.
 
         x[k+1] = A x[k] + B u[k]
@@ -197,7 +198,7 @@ class roboBee(object):
 
 
         A = np.zeros((6, 6))
-        B = np.zeros((6, 6))
+        B = np.zeros((6,6))
         #Derivative of angular positon is angular velocity
         A[0,1] = 1
         #Derivative of position is velocity
@@ -217,8 +218,8 @@ class roboBee(object):
 
 
         #Coefficients for input matrix B
-        B[1,0] = 1 / self.Jz
         B[1,1] = 1 / self.Jz
+        B[1,0] = 1 / self.Jz
 
         Q = np.identity(6)
         #impose larger penalty on theta and theta_dot for deviating than position
@@ -228,16 +229,34 @@ class roboBee(object):
 
         #R = 0.001
         R = np.identity(6)
+        R[1,1] = 0.01
 
-        gains, ricatti, eigs = control.lqr(A, B, Q, R)
+        """
+        #Will delete this once I finish debugging
+        print("A: ", A, "\n")
+        print("B: ", B, "\n")
+        print("Q: ", Q, "\n")
+        print("R: ", R, "\n")
+        print(A.shape, B.shape)
 
-        state_dot = (A - B*gains) * state   #Unclear if this should be included here, will investigate:   + B*K*state_desired
 
-        new_state = A + B * gains
+        #print(gains, "\n", state)
+        """
 
+        gains, ricatti, eigs = self.dlqr(A, B, Q, R)
+
+
+        state_dot = np.dot((A - np.dot(B, gains)), state)   #Unclear if this should be included here, will investigate:   + B*K*state_desired
+
+        new_state = state + state_dot*dt #A + B * gains
+
+        """
+        #will delete these prints when I finish debugging
         print(state_dot, "\n")
         print(new_state, "\n")
         print(gains)
+
+        """
 
         return new_state
 

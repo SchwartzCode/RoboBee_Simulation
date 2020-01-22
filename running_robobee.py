@@ -14,7 +14,7 @@ tester = roboBee()
 #tester.updateState()
 #print(tester.orientation)
 
-#tester.run(1200)
+tester.run_analytical(1200)
 
 """
 u_empty = np.zeros(6)
@@ -23,8 +23,9 @@ tester.real_state_space(u_empty, dt)
 """
 
 
-
+"""
 u_test = np.array([0, 0, 0, 10, 0, 0])
 dt = 1/120
 u_des = np.array([0, 0, 10, 10, 0, 0])
 tester.updateState_LQR_Control(u_test, dt, u_des)
+"""

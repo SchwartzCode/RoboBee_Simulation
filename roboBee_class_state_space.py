@@ -291,10 +291,16 @@ class roboBee(object):
         for i in range(3):
             theta_vals[i] = dt*u[9+i] #calculate angle to rotate about orientaiton axes
             if rot_exists:
-                rotation = rotation * Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
+                rotation = rotation * np.quaternion(self.inertial_frame[i], theta_vals[i])
             else:
-                rotation = Quaternion(axis=self.inertial_frame[i], angle=theta_vals[i])
+                rotation = np.qaternion(self.inertial_frame[i], theta_vals[i])
                 rot_exists = True
+
+        """
+        LOOK AT MATH OF QUATERNION ROTATIONS TO DO THIS, OR JUST USE ROTATION MATRICES
+        THIS NEW QUATERNION LIBRARY DOES NOT SEEM TO HAVE A 'ROTATE' FUNCTION
+        FOR ROTATING A VECTOR USING A QUATERNION
+        """
 
         if rot_exists:
             u[6:9] = rotation.rotate(u[6:9])

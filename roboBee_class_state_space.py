@@ -205,8 +205,8 @@ class roboBee(object):
         Q[0,0] = 100
         Q[1,1] = 100
 
-        R = 0.001
-
+        #R = 0.001
+        R = np.identity(6)
 
         gains, ricatti, eigs = control.lqr(A, B, Q, R)
 

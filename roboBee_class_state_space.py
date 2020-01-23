@@ -194,7 +194,7 @@ class roboBee(object):
 
 
         A = np.zeros((6, 6))
-        B = np.zeros((6,6))
+        B = np.zeros(6).reshape(6,1)
         #Derivative of angular positon is angular velocity
         A[0,1] = 1
         #Derivative of position is velocity
@@ -214,24 +214,17 @@ class roboBee(object):
 
 
         #Coefficients for input matrix B
-        B[1,1] = 1 / self.Jz
-        B[1,0] = 1 / self.Jz
+        B[1] = 1 / self.Jz
+        #B[1,0] = 1 / self.Jz
 
         Q = np.identity(6)
         #impose larger penalty on theta and theta_dot for deviating than position
         #because these deviating will cause robot to become unstable and state will diverge
-        Q[0,0] = 0.5
-        Q[1,1] = 0.2
+        Q[0,0] = 10
+        Q[1,1] = 1
 
-        #R = 0.001
-        R = np.identity(6)
-        R[0,0] = 1e-5
-        R[1,1] = 5e-4
-        R[2,2] = 1e-5
-        R[3,3] = 1e-5
-        R[4,4] = 1e-5
-        R[5,5] = 1e-5
-
+        R = 0.001
+        
         """
         #Will delete this once I finish debugging
         print("A: ", A, "\n")

@@ -16,7 +16,7 @@ tester = roboBee()
 
 #tester.run_analytical(1200)
 #tester.run_pd(1200)
-tester.run_lqr(1200)
+tester.run_lqr(400)
 
 """
 u_empty = np.zeros(6)

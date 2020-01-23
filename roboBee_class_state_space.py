@@ -192,10 +192,6 @@ class roboBee(object):
         #    In the future this will be elsewhere, just keeping it to evaluate
         #    This controller against the analytical one I
 
-        u = np.zeros(6)
-        u[0] = state[0]
-        u[1] = state[1]
-
 
         A = np.zeros((6, 6))
         B = np.zeros((6,6))
@@ -224,12 +220,17 @@ class roboBee(object):
         Q = np.identity(6)
         #impose larger penalty on theta and theta_dot for deviating than position
         #because these deviating will cause robot to become unstable and state will diverge
-        Q[0,0] = 100
-        Q[1,1] = 100
+        Q[0,0] = 0.5
+        Q[1,1] = 0.2
 
         #R = 0.001
         R = np.identity(6)
-        R[1,1] = 0.01
+        R[0,0] = 1e-5
+        R[1,1] = 5e-4
+        R[2,2] = 1e-5
+        R[3,3] = 1e-5
+        R[4,4] = 1e-5
+        R[5,5] = 1e-5
 
         """
         #Will delete this once I finish debugging
@@ -238,25 +239,23 @@ class roboBee(object):
         print("Q: ", Q, "\n")
         print("R: ", R, "\n")
         print(A.shape, B.shape)
-
-
-        #print(gains, "\n", state)
         """
 
         gains, ricatti, eigs = self.dlqr(A, B, Q, R)
 
 
-        state_dot = np.dot((A - np.dot(B, gains)), state)   #Unclear if this should be included here, will investigate:   + B*K*state_desired
+        state_dot = np.dot((A - np.dot(B, gains)), state) + np.dot(np.dot(B, gains), state_desired)
 
-        new_state = state + state_dot*dt #A + B * gains
+        new_state = state + state_dot*dt
 
         """
         #will delete these prints when I finish debugging
+        print("gains: ", gains, "\n")
         print(state_dot, "\n")
         print(new_state, "\n")
         print(gains)
-
         """
+
 
         return new_state
 
@@ -336,12 +335,6 @@ class roboBee(object):
                 rotation = self.rotation_matrix(self.inertial_frame[i], theta_vals[i])
                 rot_exists = True
 
-        """
-        LOOK AT MATH OF QUATERNION ROTATIONS TO DO THIS, OR JUST USE ROTATION MATRICES
-        THIS NEW QUATERNION LIBRARY DOES NOT SEEM TO HAVE A 'ROTATE' FUNCTION
-        FOR ROTATING A VECTOR USING A QUATERNION
-        """
-
         if rot_exists:
             u[6:9] = np.dot(rotation,(u[6:9]))
             for j in range(3):
@@ -351,8 +344,47 @@ class roboBee(object):
 
         return u
 
+    def run_lqr(self, timesteps):
+        state = np.zeros(6).reshape(6,1)
+        state[3] = 10.0 #setting robobee height so it doesn't immeadiately crash
+        state[1] = 1
+        vel_data = [ np.linalg.norm(state[4:]) ]
+        aVel_data = [ state[1] ]
 
-    def run(self, timesteps):
+
+        state_desired = np.array([0.0, 0.0, 10, 5, 0.0, 0.0]).reshape(6,1)
+
+
+        for i in range(timesteps):
+            print(i, ":\t", state)
+
+
+            if(state[3] <= 0.0):
+                print("\n\nBANG BOOM CRASH OH NO!")
+                print(state)
+                break
+
+            half_state = self.updateState_LQR_Control(state.copy(), self.dt/2, state_desired)
+            state = self.updateState_LQR_Control(half_state, self.dt, state_desired)
+
+            vel_data.append(np.linalg.norm(state[4:]))
+            aVel_data.append(state[1])
+
+        t = np.linspace(0, self.dt*len(vel_data), len(vel_data))
+
+        plt.plot(t, vel_data, label='Velocity [m/s]')
+        plt.plot(t, aVel_data, label='Angular Velocity [rad/s]')
+        plt.grid()
+        plt.legend()
+        #plt.ylim(-10, 10)
+        plt.ylabel("Magnitude")
+        plt.xlabel("time [sec]")
+        #plt.yscale("log") #tried this once, it looked awful
+        plt.title("k = {0:.1e}".format(self.TORQUE_CONTROLLER_CONSTANT))
+        plt.show()
+
+
+    def run_pd(self, timesteps):
         state = np.zeros(6)
         state[3] = 10.0 #setting robobee height so it doesn't immeadiately crash
         state[1] = 1

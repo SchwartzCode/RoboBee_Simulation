@@ -203,10 +203,10 @@ class roboBee(object):
 
         # V_x_dot terms
         A[4,0] = self.g*self.LIFT_COEFFICIENT
-        A[4,4] = -self.B_w
+        A[4,4] = -self.B_w / self.MASS
 
         # Theta_dot term(s)
-        A[1,4] = -self.Rw*self.B_w / self.Jz
+        #A[1,4] = -self.Rw*self.B_w / self.Jz
 
         #Note: There are no terms in the A matrix for V_z_dot because that is
         #   controlled by the altitude controller which is decoupled from this
@@ -217,14 +217,15 @@ class roboBee(object):
         B[1] = 1 / self.Jz
         #B[1,0] = 1 / self.Jz
 
-        Q = np.identity(6)
+        Q = np.zeros((6,6))
         #impose larger penalty on theta and theta_dot for deviating than position
         #because these deviating will cause robot to become unstable and state will diverge
-        Q[0,0] = 10
-        Q[1,1] = 1
+        Q[0,0] = 1
+        Q[2,2] = 1
+        #Q[1,1] = 1e9
 
         R = 0.001
-        
+
         """
         #Will delete this once I finish debugging
         print("A: ", A, "\n")
@@ -234,7 +235,7 @@ class roboBee(object):
         print(A.shape, B.shape)
         """
 
-        gains, ricatti, eigs = self.dlqr(A, B, Q, R)
+        gains, ricatti, eigs = control.lqr(A, B, Q, R)
 
 
         state_dot = np.dot((A - np.dot(B, gains)), state) + np.dot(np.dot(B, gains), state_desired)
@@ -339,23 +340,16 @@ class roboBee(object):
 
     def run_lqr(self, timesteps):
         state = np.zeros(6).reshape(6,1)
-        state[3] = 10.0 #setting robobee height so it doesn't immeadiately crash
         state[1] = 1
         vel_data = [ np.linalg.norm(state[4:]) ]
         aVel_data = [ state[1] ]
 
 
-        state_desired = np.array([0.0, 0.0, 10, 5, 0.0, 0.0]).reshape(6,1)
+        state_desired = np.array([0.0, 0.0, 10, 0.0, 0.0, 0.0]).reshape(6,1)
 
 
         for i in range(timesteps):
             print(i, ":\t", state)
-
-
-            if(state[3] <= 0.0):
-                print("\n\nBANG BOOM CRASH OH NO!")
-                print(state)
-                break
 
             half_state = self.updateState_LQR_Control(state.copy(), self.dt/2, state_desired)
             state = self.updateState_LQR_Control(half_state, self.dt, state_desired)

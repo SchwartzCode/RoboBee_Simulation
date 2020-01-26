@@ -128,8 +128,8 @@ class roboBee(object):
         #controller that keeps robot upright)
         torque_constant_prop = 6e-7
         torque_constant_deriv = 1.55e-7
-        B[1,0] = -torque_constant_prop / self.Jz
-        B[1,1] = -torque_constant_deriv / self.Jz
+        B[1,0] = 0.0 #-torque_constant_prop / self.Jz
+        B[1,1] = 0.0 #-torque_constant_deriv / self.Jz
 
 
         #print(A)
@@ -407,7 +407,7 @@ class roboBee(object):
         plt.ylabel("Magnitude")
         plt.xlabel("time [sec]")
         #plt.yscale("log") #tried this once, it looked awful
-        plt.title("k = {0:.1e}".format(self.TORQUE_CONTROLLER_CONSTANT))
+        plt.title("State Space No Controller Controller")
         plt.show()
 
 

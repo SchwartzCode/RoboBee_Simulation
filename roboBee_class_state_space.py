@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import math
 import control
 import scipy
+from random import seed, random
 
 class roboBee(object):
     """  CONSTANTS & ROBOT SPECS   """
@@ -367,9 +368,10 @@ class roboBee(object):
 
 
     def run_pd(self, timesteps):
+        seed() #initializes random number generator
         state = np.zeros(4)
 
-        state[1] = 1
+        state[1] = -10 + (random() * 20)
         state_data = np.array( state )
 
         for i in range(timesteps):
@@ -378,7 +380,7 @@ class roboBee(object):
             if(i % 250 == 0):
                 #this conditional occasionally varies angular vel to validate functionality
                 #of torque controller
-                state[1] = 10
+                state[1] = -10 + (random() * 20)
 
             half_state, torque_applied = self.updateState_PD_Control(state.copy(), self.dt/2)
             state, torque_applied = self.updateState_PD_Control(half_state, self.dt)

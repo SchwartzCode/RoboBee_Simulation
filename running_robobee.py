@@ -17,7 +17,7 @@ JIA: use the 'input' and 'output' variables below to train the neural network, i
     you want more data, just increaes x in run_pd(x) as that is the number of time
     steps the simulation will run
 """
-input, output = tester.run_pd(400)
+input, output = tester.run_pd(4000)
 
 
 

@@ -177,9 +177,7 @@ class roboBee(object):
             state[0] = theta (angle of rotation from intertial to global coords in 2D)
             state[1] = theta_dot (change in theta per unit time)
             state[2] = x axis position in global coordinates
-            state[3] = z axis position in global coordinates
-            state[4] = x_dot (x axis velocity)
-            state[5] = z_dot (z axis velocity)
+            state[3] = x_dot (x axis velocity)
         dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
         """
 
@@ -189,20 +187,19 @@ class roboBee(object):
         #    This controller against the analytical one I
 
 
-        A = np.zeros((6, 6))
-        B = np.zeros(6).reshape(6,1)
+        A = np.zeros((4, 4))
+        B = np.zeros(4).reshape(4,1)
         #Derivative of angular positon is angular velocity
         A[0,1] = 1
         #Derivative of position is velocity
-        A[2,4] = 1
-        A[3,5] = 1
+        A[2,3] = 1
 
         # V_x_dot terms
-        A[4,0] = self.g*self.LIFT_COEFFICIENT
-        A[4,4] = -self.B_w / self.MASS
+        A[3,0] = self.g*self.LIFT_COEFFICIENT
+        A[3,3] = -self.B_w / self.MASS
 
         # Theta_dot term(s)
-        #A[1,4] = -self.Rw*self.B_w / self.Jz
+        A[1,3] = -self.Rw*self.B_w / self.Jz
 
         #Note: There are no terms in the A matrix for V_z_dot because that is
         #   controlled by the altitude controller which is decoupled from this
@@ -213,12 +210,12 @@ class roboBee(object):
         B[1] = 1 / self.Jz
         #B[1,0] = 1 / self.Jz
 
-        Q = np.zeros((6,6))
+        Q = np.zeros((4,4))
         #impose larger penalty on theta and theta_dot for deviating than position
         #because these deviating will cause robot to become unstable and state will diverge
         Q[0,0] = 1
         Q[2,2] = 1
-        #Q[1,1] = 1e9
+        Q[1,1] = 2
 
         R = 0.001
 
@@ -231,10 +228,12 @@ class roboBee(object):
         print(A.shape, B.shape)
         """
 
-        gains, ricatti, eigs = control.lqr(A, B, Q, R)
+        gains, ricatti, eigs = self.dlqr(A, B, Q, R)
+
+        print("B dot gains: ", B * gains * state_desired)
 
 
-        state_dot = np.dot((A - np.dot(B, gains)), state) + np.dot(np.dot(B, gains), state_desired)
+        state_dot = (A - (B * gains)) * state + B * gains * state_desired
 
         new_state = state + state_dot*dt
 
@@ -335,13 +334,13 @@ class roboBee(object):
         return u
 
     def run_lqr(self, timesteps):
-        state = np.zeros(6).reshape(6,1)
-        state[1] = 1
-        vel_data = [ np.linalg.norm(state[4:]) ]
-        aVel_data = [ state[1] ]
+        state = np.zeros(4).reshape(4,1)
+        state[1] = 0
+
+        state_data = np.array( state )
 
 
-        state_desired = np.array([0.0, 0.0, 10, 0.0, 0.0, 0.0]).reshape(6,1)
+        state_desired = np.array([0.0, 0.0, 10, 0.0]).reshape(4,1)
 
 
         for i in range(timesteps):
@@ -350,15 +349,13 @@ class roboBee(object):
             half_state = self.updateState_LQR_Control(state.copy(), self.dt/2, state_desired)
             state = self.updateState_LQR_Control(half_state, self.dt, state_desired)
 
-            vel_data.append(np.linalg.norm(state[4:]))
-            aVel_data.append(state[1])
+            state_data = np.hstack([state_data, np.array(state)])
 
-        t = np.linspace(0, self.dt*len(vel_data), len(vel_data))
+        t = np.linspace(0, self.dt*len(state_data[0,:]), len(state_data[0,:]))
 
-        plt.plot(t, vel_data, label='Velocity [m/s]')
-        plt.plot(t, aVel_data, label='Angular Velocity [rad/s]')
+        plt.plot(t, state_data[2,:], label='X Position [m]')
         plt.grid()
-        plt.legend()
+        #plt.legend()
         #plt.ylim(-10, 10)
         plt.ylabel("Magnitude")
         plt.xlabel("time [sec]")

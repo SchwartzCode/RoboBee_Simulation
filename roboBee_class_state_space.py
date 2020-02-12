@@ -366,7 +366,6 @@ class roboBee(object):
         state = np.zeros(4)
 
         state[1] = -10 + (random() * 20)
-        state_data = np.array( state )
 
         for i in range(timesteps):
             print(i, ":\t", state)
@@ -376,9 +375,15 @@ class roboBee(object):
                 #of torque controller
                 state[1] = -10 + (random() * 20)
 
+
+
+            if (i==0):
+                state_data = np.array(state)
+            else:
+                state_data = np.vstack([state_data, np.array(state)])
+
             state, torque_applied = self.updateState_PD_Control(state.copy(), self.dt)
 
-            state_data = np.vstack([state_data, np.array(state)])
 
             if (i==0):
                 torques_data = np.array(torque_applied)

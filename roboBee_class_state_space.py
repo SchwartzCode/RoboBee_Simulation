@@ -212,7 +212,7 @@ class roboBee(object):
         #because these deviating will cause robot to become unstable and state will diverge
         Q[0,0] = 1
         Q[2,2] = 1
-        Q[1,1] = 2
+        Q[1,1] = 5
 
         R = 0.001
 
@@ -225,12 +225,13 @@ class roboBee(object):
         print(A.shape, B.shape)
         """
 
-        gains, ricatti, eigs = self.dlqr(A, B, Q, R)
-
-        print("B dot gains: ", B * gains * state_desired)
-
+        gains, ricatti, eigs = control.lqr(A, B, Q, R)
 
         state_dot = (A - (B * gains)) * state + B * gains * state_desired
+
+
+        print("B dot gains: ", B * gains * state_desired, "\n")
+        print("State_dot: ", state_dot, "\n")
 
         new_state = state + state_dot*dt
 
@@ -343,8 +344,7 @@ class roboBee(object):
         for i in range(timesteps):
             print(i, ":\t", state)
 
-            half_state = self.updateState_LQR_Control(state.copy(), self.dt/2, state_desired)
-            state = self.updateState_LQR_Control(half_state, self.dt, state_desired)
+            state = self.updateState_LQR_Control(state.copy(), self.dt, state_desired)
 
             state_data = np.hstack([state_data, np.array(state)])
 
@@ -352,12 +352,20 @@ class roboBee(object):
 
         plt.plot(t, state_data[2,:], label='X Position [m]')
         plt.grid()
-        #plt.legend()
+        plt.legend()
         #plt.ylim(-10, 10)
         plt.ylabel("Magnitude")
         plt.xlabel("time [sec]")
         #plt.yscale("log") #tried this once, it looked awful
-        plt.title("k = {0:.1e}".format(self.TORQUE_CONTROLLER_CONSTANT))
+        plt.title("LQR Controller - Position")
+        plt.show()
+
+        plt.plot(t, state_data[0,:], label='Theta  [rad]')
+        plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
+        plt.title("LQR Controller - Attitude")
+        plt.xlabel("Time [sec]")
+        plt.ylabel("Magnitude")
+        plt.legend()
         plt.show()
 
 
@@ -483,13 +491,3 @@ class roboBee(object):
 
             print(self.sensor_readings[i], end=' -- ')
         print()
-
-
-
-    def getState(self):
-        #this function needs to be updated
-        print("===ROBOBEE STATE===")
-        print("POSITION:\t", self.state[:3])
-        print("VELOCITY:\t", self.state[3:6])
-        print("ORIENTATION:\t", self.state[6:9])
-        print("ANGULAR VEL:\t", self.state[9:], "\n")

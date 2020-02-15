@@ -192,7 +192,7 @@ class roboBee(object):
         Q[2,2] = 1000
         Q[1,1] = 1
 
-        R = 1
+        R = 0.01
 
         """
         #Will delete this once I finish debugging
@@ -318,7 +318,7 @@ class roboBee(object):
         state_data = np.array( state )
 
 
-        state_desired = np.array([0.0, 0.0, -500, 0.0]).reshape(4,1)
+        state_desired = np.array([0.0, 0.0, 3, 0.0]).reshape(4,1)
 
 
         for i in range(timesteps):
@@ -330,21 +330,22 @@ class roboBee(object):
 
         t = np.linspace(0, self.dt*len(state_data[0,:]), len(state_data[0,:]))
 
+        plt.figure(figsize=[6,8])
+        plt.subplot(2,1,1)
         plt.plot(t, state_data[2,:], label='X Position [m]')
         plt.grid()
         plt.legend()
         #plt.ylim(-10, 10)
         plt.ylabel("Magnitude")
-        plt.xlabel("time [sec]")
         #plt.yscale("log") #tried this once, it looked awful
-        plt.title("LQR Controller - Position (Desired Position x=-500)")
-        plt.show()
+        plt.title("LQR Controller - Position (Desired Position x=%i)" %state_desired[2])
 
+        plt.subplot(2,1,2)
         plt.plot(t, state_data[0,:], label='Theta  [rad]')
         plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
         plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
         plt.ylim(-5,5)
-        plt.title("LQR Controller - Attitude (Desired Position x=-500)")
+        plt.title("LQR Controller - Attitude (Desired Position x=%i)" %state_desired[2])
         plt.xlabel("Time [sec]")
         plt.ylabel("Magnitude")
         plt.legend()

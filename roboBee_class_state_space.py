@@ -135,28 +135,6 @@ class roboBee(object):
         return new_state, torque_applied
 
 
-    def dlqr(self,A,B,Q,R):
-        """
-        NOTE: I did not come up with this function myself, I borrowed it from stack overflow
-        Solve the discrete time lqr controller.
-
-        x[k+1] = A x[k] + B u[k]
-
-        cost = sum x[k].T*Q*x[k] + u[k].T*R*u[k]
-        """
-        #ref Bertsekas, p.151
-
-        #first, try to solve the ricatti equation
-        X = np.matrix(scipy.linalg.solve_discrete_are(A, B, Q, R))
-
-        #compute the LQR gain
-        K = np.matrix(scipy.linalg.inv(B.T*X*B+R)*(B.T*X*A))
-
-        eigVals, eigVecs = scipy.linalg.eig(A-B*K)
-
-        return K, X, eigVals
-
-
     def updateState_LQR_Control(self, state, dt, state_desired):
         """
         This function will calculate the new state using the current state
@@ -204,17 +182,17 @@ class roboBee(object):
 
 
         #Coefficients for input matrix B
-        B[1] = 1 / self.Jz
+        B[1] = 1 #/ self.Jz
         #B[1,0] = 1 / self.Jz
 
         Q = np.zeros((4,4))
         #impose larger penalty on theta and theta_dot for deviating than position
         #because these deviating will cause robot to become unstable and state will diverge
-        Q[0,0] = 1
-        Q[2,2] = 1
-        Q[1,1] = 5
+        Q[0,0] = 10
+        Q[2,2] = 1000
+        Q[1,1] = 1
 
-        R = 0.001
+        R = 1
 
         """
         #Will delete this once I finish debugging
@@ -230,8 +208,10 @@ class roboBee(object):
         state_dot = (A - (B * gains)) * state + B * gains * state_desired
 
 
-        print("B dot gains: ", B * gains * state_desired, "\n")
+        print("B:", B, "\n")
+        print("Gains:", gains, '\n')
         print("State_dot: ", state_dot, "\n")
+        print("State_desired", state_desired, "\n")
 
         new_state = state + state_dot*dt
 
@@ -333,12 +313,12 @@ class roboBee(object):
 
     def run_lqr(self, timesteps):
         state = np.zeros(4).reshape(4,1)
-        state[1] = 0
+        state[0] = -0.01
 
         state_data = np.array( state )
 
 
-        state_desired = np.array([0.0, 0.0, 10, 0.0]).reshape(4,1)
+        state_desired = np.array([0.0, 0.0, -500, 0.0]).reshape(4,1)
 
 
         for i in range(timesteps):
@@ -357,12 +337,14 @@ class roboBee(object):
         plt.ylabel("Magnitude")
         plt.xlabel("time [sec]")
         #plt.yscale("log") #tried this once, it looked awful
-        plt.title("LQR Controller - Position")
+        plt.title("LQR Controller - Position (Desired Position x=-500)")
         plt.show()
 
         plt.plot(t, state_data[0,:], label='Theta  [rad]')
         plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
-        plt.title("LQR Controller - Attitude")
+        plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
+        plt.ylim(-5,5)
+        plt.title("LQR Controller - Attitude (Desired Position x=-500)")
         plt.xlabel("Time [sec]")
         plt.ylabel("Magnitude")
         plt.legend()

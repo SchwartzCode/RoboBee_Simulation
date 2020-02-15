@@ -12,7 +12,7 @@ tester = roboBee()
 #tester.run_analytical(1200)
 #tester.run_pd(1200)
 
-tester.run_lqr(5)
+tester.run_lqr(1000)
 
 """
 JIA: use the 'input' and 'output' variables below to train the neural network, if

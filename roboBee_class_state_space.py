@@ -194,37 +194,21 @@ class roboBee(object):
 
         R = 0.01
 
-        """
-        #Will delete this once I finish debugging
-        print("A: ", A, "\n")
-        print("B: ", B, "\n")
-        print("Q: ", Q, "\n")
-        print("R: ", R, "\n")
-        print(A.shape, B.shape)
-        """
 
         gains, ricatti, eigs = control.lqr(A, B, Q, R)
 
         state_dot = (A - (B * gains)) * state + B * gains * state_desired
 
 
-        print("B:", B, "\n")
-        print("Gains:", gains, '\n')
-        print("State_dot: ", state_dot, "\n")
-        print("State_desired", state_desired, "\n")
+        #print("B:", B, "\n")
+        #print("Gains:", gains, '\n')
+        #print("State_dot: ", state_dot, "\n")
+        #print("State_desired", state_desired, "\n")
 
         new_state = state + state_dot*dt
 
-        """
-        #will delete these prints when I finish debugging
-        print("gains: ", gains, "\n")
-        print(state_dot, "\n")
-        print(new_state, "\n")
-        print(gains)
-        """
 
-
-        return new_state
+        return new_state, gains
 
 
     def updateState_analytical(self, u, dt):
@@ -312,21 +296,27 @@ class roboBee(object):
         return u
 
     def run_lqr(self, timesteps):
+
         state = np.zeros(4).reshape(4,1)
-        state[0] = -0.01
-
-        state_data = np.array( state )
-
-
         state_desired = np.array([0.0, 0.0, 3, 0.0]).reshape(4,1)
 
 
         for i in range(timesteps):
             print(i, ":\t", state)
 
-            state = self.updateState_LQR_Control(state.copy(), self.dt, state_desired)
+            if (i==0):
+                state_data = np.array(state)
+            else:
+                state_data = np.hstack([state_data, np.array(state)])
 
-            state_data = np.hstack([state_data, np.array(state)])
+
+            state, gains = self.updateState_LQR_Control(state.copy(), self.dt, state_desired)
+
+            if (i==0):
+                gains_data = np.array(gains)
+            else:
+                gains_data = np.vstack([gains_data, np.array(gains)])
+
 
         t = np.linspace(0, self.dt*len(state_data[0,:]), len(state_data[0,:]))
 
@@ -350,6 +340,8 @@ class roboBee(object):
         plt.ylabel("Magnitude")
         plt.legend()
         plt.show()
+
+        return state_data, np.transpose(gains_data)
 
 
     def run_pd(self, timesteps):

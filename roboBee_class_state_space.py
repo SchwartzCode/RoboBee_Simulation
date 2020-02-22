@@ -208,7 +208,7 @@ class roboBee(object):
         new_state = state + state_dot*dt
 
 
-        return new_state, gains
+        return new_state, state_dot[1]
 
 
     def updateState_analytical(self, u, dt):
@@ -305,20 +305,21 @@ class roboBee(object):
             print(i, ":\t", state)
 
             if (i==0):
-                state_data = np.array(state)
+                state_data = np.vstack([ state, state_desired[2] ])
             else:
-                state_data = np.hstack([state_data, np.array(state)])
+                state_data = np.hstack([ state_data, np.vstack([state, state_desired[2]])  ])
 
 
-            state, gains = self.updateState_LQR_Control(state.copy(), self.dt, state_desired)
+            state, torque_gen = self.updateState_LQR_Control(state.copy(), self.dt, state_desired)
 
             if (i==0):
-                gains_data = np.array(gains)
+                torque_data = np.array(torque_gen)
             else:
-                gains_data = np.vstack([gains_data, np.array(gains)])
+                torque_data = np.append(torque_data, torque_gen)
 
 
-        t = np.linspace(0, self.dt*len(state_data[0,:]), len(state_data[0,:]))
+        state_data = np.array(state_data)
+        t = np.linspace(0, self.dt*state_data.shape[1], state_data.shape[1])
 
         plt.figure(figsize=[6,8])
         plt.subplot(2,1,1)
@@ -341,7 +342,7 @@ class roboBee(object):
         plt.legend()
         plt.show()
 
-        return state_data, np.transpose(gains_data)
+        return np.transpose(state_data), torque_data
 
 
     def run_pd(self, timesteps):

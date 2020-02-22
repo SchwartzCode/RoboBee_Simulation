@@ -21,7 +21,7 @@ control. I can explain the physics behind this if you'd like, just ask me
 
 input, output = tester.run_lqr(500)
 
-print(output.shape)
+print(input[0].shape, output.shape)
 
 """
 JIA: use the 'input' and 'output' variables below to train the neural network, if

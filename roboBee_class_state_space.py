@@ -153,6 +153,8 @@ class roboBee(object):
             state[1] = theta_dot (change in theta per unit time)
             state[2] = x axis position in global coordinates
             state[3] = x_dot (x axis velocity)
+            state[4] = z axis position in global coordinates
+            state[5] = z_dot (z axis velocity)
         dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
         """
 
@@ -183,13 +185,12 @@ class roboBee(object):
 
         #Coefficients for input matrix B
         B[1] = 1 #/ self.Jz
-        #B[1,0] = 1 / self.Jz
 
         Q = np.zeros((4,4))
         #impose larger penalty on theta and theta_dot for deviating than position
         #because these deviating will cause robot to become unstable and state will diverge
         Q[0,0] = 10
-        Q[2,2] = 1000
+        Q[2,2] = 100
         Q[1,1] = 1
 
         R = 0.01
@@ -197,13 +198,27 @@ class roboBee(object):
 
         gains, ricatti, eigs = control.lqr(A, B, Q, R)
 
-        state_dot = (A - (B * gains)) * state + B * gains * state_desired
+        state_dot_lat = (A - (B * gains)) * state[:4] + B * gains * state_desired[:4]
+
+        """  ALTITUDE CONTROLLER
+                All it does is adjust the lift force based on where the robot is
+                is to its desired altitude
+        """
+
+        #if abs(state_desired[4] - state[4]) < 0.1:
+        #    self.LIFT_COEFFICIENT = 1
+        #if state_desired[4] > state[4]:
+        #    self.LIFT_COEFFICIENT 1 + 0.01 * (state_desired[4] - state[4])
+        #elif state_desired[4] < state[4] and self.LIFT_COEFFICIENT > 0.75:
+        #    self.LIFT_COEFFICIENT = 1 + 0.01 * (state_desired[4] - state[4])
+
+        self.LIFT_COEFFICIENT = 1 + 0.01 * (state_desired[4] - state[4])
+        print(self.LIFT_COEFFICIENT)
+
+        state_dot_alt = np.array([state[5], self.MASS*self.g*(self.LIFT_COEFFICIENT*np.cos(state[0]) - 1)]).reshape(2,1)
 
 
-        #print("B:", B, "\n")
-        #print("Gains:", gains, '\n')
-        #print("State_dot: ", state_dot, "\n")
-        #print("State_desired", state_desired, "\n")
+        state_dot = np.vstack([state_dot_lat, state_dot_alt])
 
         new_state = state + state_dot*dt
 
@@ -297,8 +312,8 @@ class roboBee(object):
 
     def run_lqr(self, timesteps):
 
-        state = np.zeros(4).reshape(4,1)
-        state_desired = np.array([0.0, 0.0, 3, 0.0]).reshape(4,1)
+        state = np.zeros(6).reshape(6,1)
+        state_desired = np.array([0.0, 0.0, 3, 0.0, 3, 0.0]).reshape(6,1)
 
 
         for i in range(timesteps):
@@ -321,26 +336,26 @@ class roboBee(object):
         state_data = np.array(state_data)
         t = np.linspace(0, self.dt*state_data.shape[1], state_data.shape[1])
 
-        plt.figure(figsize=[6,8])
+
+
         plt.subplot(2,1,1)
-        plt.plot(t, state_data[2,:], label='X Position [m]')
+        plt.plot(state_data[2,:], state_data[4,:])
+        plt.xlabel('X [m]')
+        plt.ylabel('Y [m]')
         plt.grid()
-        plt.legend()
-        #plt.ylim(-10, 10)
-        plt.ylabel("Magnitude")
-        #plt.yscale("log") #tried this once, it looked awful
         plt.title("LQR Controller - Position (Desired Position x=%i)" %state_desired[2])
+
 
         plt.subplot(2,1,2)
         plt.plot(t, state_data[0,:], label='Theta  [rad]')
         plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
         plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
         plt.ylim(-5,5)
-        plt.title("LQR Controller - Attitude (Desired Position x=%i)" %state_desired[2])
         plt.xlabel("Time [sec]")
         plt.ylabel("Magnitude")
         plt.legend()
         plt.show()
+
 
         return np.transpose(state_data), torque_data
 

@@ -190,10 +190,11 @@ class roboBee(object):
         #impose larger penalty on theta and theta_dot for deviating than position
         #because these deviating will cause robot to become unstable and state will diverge
         Q[0,0] = 10
-        Q[2,2] = 100
         Q[1,1] = 1
+        Q[2,2] = 100
+        Q[3,3] = 0.1
 
-        R = 0.01
+        R = 1e-4
 
 
         gains, ricatti, eigs = control.lqr(A, B, Q, R)
@@ -212,8 +213,20 @@ class roboBee(object):
         #elif state_desired[4] < state[4] and self.LIFT_COEFFICIENT > 0.75:
         #    self.LIFT_COEFFICIENT = 1 + 0.01 * (state_desired[4] - state[4])
 
-        self.LIFT_COEFFICIENT = 1 + 0.01 * (state_desired[4] - state[4])
-        print(self.LIFT_COEFFICIENT)
+        adjustment = 0.02
+        if (state[5] > 0 and state[5] > (state_desired[4] - state[4])):
+            state[5] -= adjustment
+        elif (state[5] < 0 and state[5] < (state_desired[4] - state[4])):
+            state[5] += adjustment
+        else:
+            self.LIFT_COEFFICIENT = 1 + (state_desired[4] - state[4])
+
+        if (self.LIFT_COEFFICIENT > 1.5):
+            self.LIFT_COEFFICIENT = 1.5
+        elif (self.LIFT_COEFFICIENT < 0.5):
+            self.LIFT_COEFFICIENT = 0.5
+        #self.LIFT_COEFFICIENT = 1 +  (state_desired[4] - state[4])
+        #print(self.LIFT_COEFFICIENT)
 
         state_dot_alt = np.array([state[5], self.MASS*self.g*(self.LIFT_COEFFICIENT*np.cos(state[0]) - 1)]).reshape(2,1)
 
@@ -313,7 +326,7 @@ class roboBee(object):
     def run_lqr(self, timesteps):
 
         state = np.zeros(6).reshape(6,1)
-        state_desired = np.array([0.0, 0.0, 3, 0.0, 3, 0.0]).reshape(6,1)
+        state_desired = np.array([0.0, 0.0, 0.4, 0.0, 0.4, 0.0]).reshape(6,1)
 
 
         for i in range(timesteps):
@@ -337,19 +350,20 @@ class roboBee(object):
         t = np.linspace(0, self.dt*state_data.shape[1], state_data.shape[1])
 
 
-
-        plt.subplot(2,1,1)
+        plt.figure(figsize=[10,7])
+        plt.suptitle("LQR Controller - Position (Desired Position x=%i)" %state_desired[2])
+        plt.subplot(1,2,1)
         plt.plot(state_data[2,:], state_data[4,:])
         plt.xlabel('X [m]')
         plt.ylabel('Y [m]')
         plt.grid()
-        plt.title("LQR Controller - Position (Desired Position x=%i)" %state_desired[2])
 
 
-        plt.subplot(2,1,2)
+
+        plt.subplot(1,2,2)
         plt.plot(t, state_data[0,:], label='Theta  [rad]')
         plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
-        plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
+        #plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
         plt.ylim(-5,5)
         plt.xlabel("Time [sec]")
         plt.ylabel("Magnitude")

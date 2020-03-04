@@ -326,7 +326,7 @@ class roboBee(object):
     def run_lqr(self, timesteps):
 
         state = np.zeros(6).reshape(6,1)
-        state_desired = np.array([0.0, 0.0, 0.4, 0.0, 0.4, 0.0]).reshape(6,1)
+        state_desired = np.array([0.0, 0.0, 20, 0.0, 20, 0.0]).reshape(6,1)
 
 
         for i in range(timesteps):
@@ -351,7 +351,7 @@ class roboBee(object):
 
 
         plt.figure(figsize=[10,7])
-        plt.suptitle("LQR Controller - Position (Desired Position x=%i)" %state_desired[2])
+        plt.suptitle("LQR Controller - Position (Desired Position x=%4.2f, y=%4.2f)" % (state_desired[2], state_desired[4]))
         plt.subplot(1,2,1)
         plt.plot(state_data[2,:], state_data[4,:])
         plt.xlabel('X [m]')
@@ -363,7 +363,7 @@ class roboBee(object):
         plt.subplot(1,2,2)
         plt.plot(t, state_data[0,:], label='Theta  [rad]')
         plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
-        #plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
+        plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
         plt.ylim(-5,5)
         plt.xlabel("Time [sec]")
         plt.ylabel("Magnitude")

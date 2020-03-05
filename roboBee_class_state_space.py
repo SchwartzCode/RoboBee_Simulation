@@ -233,10 +233,12 @@ class roboBee(object):
 
         state_dot = np.vstack([state_dot_lat, state_dot_alt])
 
+        print("STATE DOT")
+        print(state_dot)
+
         new_state = state + state_dot*dt
 
-
-        return new_state, state_dot[1]
+        return new_state, state_dot_lat[1]
 
 
     def updateState_analytical(self, u, dt):
@@ -326,7 +328,7 @@ class roboBee(object):
     def run_lqr(self, timesteps):
 
         state = np.zeros(6).reshape(6,1)
-        state_desired = np.array([0.0, 0.0, 20, 0.0, 20, 0.0]).reshape(6,1)
+        state_desired = np.array([0.0, 0.0, 2, 0.0, 2, 0.0]).reshape(6,1)
 
 
         for i in range(timesteps):

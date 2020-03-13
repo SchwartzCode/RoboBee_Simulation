@@ -189,12 +189,12 @@ class roboBee(object):
         Q = np.zeros((4,4))
         #impose larger penalty on theta and theta_dot for deviating than position
         #because these deviating will cause robot to become unstable and state will diverge
-        Q[0,0] = 10
-        Q[1,1] = 1
-        Q[2,2] = 100
+        Q[0,0] = 1000
+        Q[1,1] = 100
+        Q[2,2] = 1
         Q[3,3] = 0.1
 
-        R = 1e-4
+        R = 0.01
 
 
         gains, ricatti, eigs = control.lqr(A, B, Q, R)
@@ -206,12 +206,6 @@ class roboBee(object):
                 is to its desired altitude
         """
 
-        #if abs(state_desired[4] - state[4]) < 0.1:
-        #    self.LIFT_COEFFICIENT = 1
-        #if state_desired[4] > state[4]:
-        #    self.LIFT_COEFFICIENT 1 + 0.01 * (state_desired[4] - state[4])
-        #elif state_desired[4] < state[4] and self.LIFT_COEFFICIENT > 0.75:
-        #    self.LIFT_COEFFICIENT = 1 + 0.01 * (state_desired[4] - state[4])
 
         adjustment = 0.02
         if (state[5] > 0 and state[5] > (state_desired[4] - state[4])):
@@ -352,12 +346,17 @@ class roboBee(object):
         t = np.linspace(0, self.dt*state_data.shape[1], state_data.shape[1])
 
 
+
         plt.figure(figsize=[10,7])
-        plt.suptitle("LQR Controller - Position (Desired Position x=%4.2f, y=%4.2f)" % (state_desired[2], state_desired[4]))
+        #plt.suptitle("LQR Controller - Position (Desired Position x=%4.2f, y=%4.2f)" % (state_desired[2], state_desired[4]))
+        plt.suptitle("LQR Controller (Prioritizing Theta)")
         plt.subplot(1,2,1)
-        plt.plot(state_data[2,:], state_data[4,:])
+        #plt.plot(state_data[2,:], state_data[4,:])
+        #plt.ylabel('Y [m]')
+        #plt.xlabel('X [m]')
+        plt.plot(t, state_data[2,:])
         plt.xlabel('X [m]')
-        plt.ylabel('Y [m]')
+        plt.ylabel("t [sec]")
         plt.grid()
 
 

@@ -19,9 +19,9 @@ have values in its second row, as that corresponds to the only state the robot c
 control. I can explain the physics behind this if you'd like, just ask me
 """
 
-input, output = tester.run_lqr(2500)
+#input, output = tester.run_lqr(2500)
 
-print(input[0].shape, output.shape)
+#print(input[0].shape, output.shape)
 
 
 """
@@ -30,3 +30,10 @@ JIA: use the 'input' and 'output' variables below to train the neural network, i
     steps the simulation will run
 """
 #input, output = tester.run_pd(1000)
+
+a = np.array([ [1, 2, 3],
+                [4, 5, 6],
+                [7, 8, 9],
+                [10, 11, 12] ])
+p = np.array([1, 2, 3, 4]).reshape(4,1)
+print(p)

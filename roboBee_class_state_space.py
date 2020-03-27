@@ -504,8 +504,7 @@ class roboBee(object):
             sensor_readings[i] = np.dot(light_vec, new_sensor_orientations[i])
             angle = np.arccos(np.dot(light_vec, new_sensor_orientations[i]) /
                                 np.linalg.norm(light_vec) * np.linalg.norm(sensor_orientaitons[i]))
-            #finding angle between light rays and vectors normal to each sensor's surface
-            #sensor_vec = (add robot orientation and sensor vectors)
+
 
             """ NOTE: This is a very crude estimation. Thought behind it was to use
                       the light output of a typical lightbulb (seems to be in the range of
@@ -525,5 +524,12 @@ class roboBee(object):
         self.sensor_readings = sensor_readings
 
         #process diffs to find sensor readings
+
+        k = 1 #this will be a constant that scales relationship between sensor readings and angle of sensor
+
+        L = np.array([ [np.sqrt(3)/k,   0,  -np.sqrt(3)/k,    0,  ],
+                       [0,  -np.sqrt(3)/k,  0,  np.sqrt(3)/k]       ])
+
+        angular_vel_estimates = L * diffs
 
         return angular_vel_estimates

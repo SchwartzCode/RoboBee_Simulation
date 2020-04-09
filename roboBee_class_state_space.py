@@ -523,15 +523,16 @@ class roboBee(object):
 
         self.sensor_readings = sensor_readings
 
-        """
-        # THIS WILL BE A DIFFERENT FUNCTION, WILL MOVE
-        #process diffs to find sensor readings
 
-        k = 1 #this will be a constant that scales relationship between sensor readings and angle of sensor
+        return diffs
 
-        L = np.array([ [np.sqrt(3)/k,   0,  -np.sqrt(3)/k,    0,  ],
-                       [0,  -np.sqrt(3)/k,  0,  np.sqrt(3)/k]       ])
+        def getAngularVel(self, diffs):
 
-        angular_vel_estimates = L * diffs
-        """
+            k = -np.pi / 850
+
+            L = np.array([ [np.sqrt(3)/k,   0,  -np.sqrt(3)/k,    0,  ],
+                           [0,  -np.sqrt(3)/k,  0,  np.sqrt(3)/k]       ])
+
+            angular_vel_estimates = L * diffs
+
         return angular_vel_estimates

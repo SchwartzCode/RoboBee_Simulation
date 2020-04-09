@@ -519,14 +519,16 @@ class roboBee(object):
             sensor_readings[i] = light_output * angle
 
 
-        diffs = sensor_readings - self.sensor_readings
-
-        self.sensor_readings = sensor_readings
 
 
-        return diffs
 
-        def getAngularVel(self, diffs):
+        return sensor_readings
+
+        def getAngularVel(self, new_readings):
+
+            diffs = new_readings - self.sensor_readings
+
+            self.sensor_readings = new_readings
 
             k = -np.pi / 850
 

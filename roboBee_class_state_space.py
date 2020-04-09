@@ -501,7 +501,7 @@ class roboBee(object):
 
         for i in range(new_sensor_orientations.shape[0]):
 
-            sensor_readings[i] = np.dot(light_vec, new_sensor_orientations[i])
+            #sensor_readings[i] = np.dot(light_vec, new_sensor_orientations[i])
             angle = np.arccos(np.dot(light_vec, new_sensor_orientations[i]) /
                                 np.linalg.norm(light_vec) * np.linalg.norm(sensor_orientaitons[i]))
 
@@ -516,13 +516,15 @@ class roboBee(object):
                       a surface area of 4*pi*[1]^2 = pi)
             """
             light_output = 850 #output of light in lumens
-            sensor_readings[i] = light_output * (np.pi/2 - angle) / pi
+            sensor_readings[i] = light_output * angle
 
 
         diffs = sensor_readings - self.sensor_readings
 
         self.sensor_readings = sensor_readings
 
+        """
+        # THIS WILL BE A DIFFERENT FUNCTION, WILL MOVE
         #process diffs to find sensor readings
 
         k = 1 #this will be a constant that scales relationship between sensor readings and angle of sensor
@@ -531,5 +533,5 @@ class roboBee(object):
                        [0,  -np.sqrt(3)/k,  0,  np.sqrt(3)/k]       ])
 
         angular_vel_estimates = L * diffs
-
+        """
         return angular_vel_estimates

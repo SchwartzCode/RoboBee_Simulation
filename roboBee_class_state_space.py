@@ -36,6 +36,7 @@ class roboBee(object):
                                           [0.0,             0.5,  -np.sqrt(0.75)]])
     sensor_readings = np.array([0.0, 0.0, 0.0, 0.0]).reshape(4,1)
     sensor_orientations = INITIAL_SENSOR_ORIENTATIONS
+    state_estimate = np.array([0.0, 0.0]).reshape(2,1)
 
     """ For Analytical Controller """
     increased = False
@@ -333,6 +334,8 @@ class roboBee(object):
         for i in range(timesteps):
             print(i, ":\t", state)
 
+
+
             if (i==0):
                 state_data = np.vstack([ state, state_desired[2] ])
                 first_reading = self.readSensors(state[0])
@@ -340,13 +343,22 @@ class roboBee(object):
                 sensor_data = np.array([0.0, 0.0]).reshape(2,1)
             else:
                 state_data = np.hstack([ state_data, np.vstack([state, state_desired[2]])  ])
-                new_reading = self.readSensors(state[0])
+                new_reading = self.readSensors(self.state_estimate[0])
                 aVelEstimates = self.getAngularVel(new_reading)
                 print("A-Vel Estimates: ", aVelEstimates)
                 sensor_data = np.hstack([ sensor_data, aVelEstimates ])
 
+            if (i>20):
+                estimated_state = state.copy()
+                estimated_state[1] = aVelEstimates[0]
+            else:
+                estimated_state = state.copy()
 
-            state, torque_gen = self.updateState_LQR_Control(state.copy(), self.dt, state_desired)
+            self.state_estimate = estimated_state
+
+
+
+            state, torque_gen = self.updateState_LQR_Control(estimated_state, self.dt, state_desired)
 
             if (i==0):
                 torque_data = np.array(torque_gen)
@@ -357,13 +369,15 @@ class roboBee(object):
         state_data = np.array(state_data)
         t = np.linspace(0, self.dt*state_data.shape[1], state_data.shape[1])
 
-        """
+        #"""
         plt.figure(figsize=[8,6])
         plt.title("Comparing Actual and Estimated Angular Velocity")
         plt.plot(t, sensor_data[0,:], label="Estimates from Sensors")
         plt.plot(t, state_data[1,:], label="Actual Angular Velocity Values")
+        plt.plot(t, state_data[0,:], label="Actual Theta Value")
         plt.ylabel("Rotational Velocity [rad/sec]")
         plt.xlabel("Time [secc]")
+        #plt.xlim(0,1)
         plt.legend()
         plt.show()
 
@@ -385,13 +399,13 @@ class roboBee(object):
         plt.subplot(1,2,2)
         plt.plot(t, state_data[0,:], label='Theta  [rad]')
         plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
-        plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
-        plt.ylim(-5,5)
+        #plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
+        plt.ylim(-0.5,0.5)
         plt.xlabel("Time [sec]")
         plt.ylabel("Magnitude")
         plt.legend()
         plt.show()
-
+        """
 
         return np.transpose(state_data), torque_data
 
@@ -519,7 +533,7 @@ class roboBee(object):
 
         for i in range(new_sensor_orientations.shape[0]):
 
-            #sensor_readings[i] = np.dot(light_vec, new_sensor_orientations[i])
+
             angle = np.arccos(np.dot(light_vec, new_sensor_orientations[i]) /
                                 np.linalg.norm(light_vec) * np.linalg.norm(new_sensor_orientations[i]))
 
@@ -541,9 +555,11 @@ class roboBee(object):
 
 
     def getAngularVel(self, new_readings):
+        #new_diffs = np.array([ new_readings[0] - new_readings[2], new_readings[1] - new_readings[3] ]).reshape(2,1)
+        #old_diffs = np.array([ self.sensor_readings[0] - self.sensor_readings[2], self.sensor_readings[1] - self.sensor_readings[3] ]).reshape(2,1)
+        #diffs = new_diffs - old_diffs
 
         diffs = new_readings - self.sensor_readings
-
         self.sensor_readings = new_readings
 
         # Original estimate was pi/850, added the 7468.8 to scale from obtained
@@ -554,5 +570,7 @@ class roboBee(object):
                        [0,  -np.sqrt(3)/k,  0,  np.sqrt(3)/k]       ])
 
         angular_vel_estimates = L.dot(diffs)
+
+        #ngular_vel_estimates = 2 * np.sqrt(3) * diffs / k
 
         return angular_vel_estimates

@@ -22,6 +22,7 @@ class roboBee(object):
     WING_INERTIA = 45.3 #inertia of wing about flapping axis [mg/mm^2]
     WING_MASS = 1.0 #[mg]
     SENSOR_NOMINAL_VAL = 1.1 #[mA]
+    LAST_TORQUE_GEN = 0.0 #[Nm]
 
 
     LIFT_COEFFICIENT = 1.0
@@ -209,6 +210,9 @@ class roboBee(object):
 
         state_dot_lat = (A - (B * gains)) * state[:4] + B * gains * state_desired[:4]
 
+
+        self.LAST_TORQUE_GEN = state_dot_lat[1,0]
+
         """  ALTITUDE CONTROLLER
                 All it does is adjust the lift force based on where the robot is
                 is to its desired altitude
@@ -334,30 +338,31 @@ class roboBee(object):
         for i in range(timesteps):
             print(i, ":\t", state)
 
-
+            #if(i%50 == 0):
+            #    state[0] = 0.05
 
             if (i==0):
                 state_data = np.vstack([ state, state_desired[2] ])
                 first_reading = self.readSensors(state[0])
                 self.sensor_readings = first_reading
                 sensor_data = np.array([0.0, 0.0]).reshape(2,1)
+                aVelEstimates = np.array([0.0, 0.0]).reshape(2,1)
             else:
                 state_data = np.hstack([ state_data, np.vstack([state, state_desired[2]])  ])
-                new_reading = self.readSensors(self.state_estimate[0])
+                new_reading = self.readSensors(state[0])
                 aVelEstimates = self.getAngularVel(new_reading)
                 print("A-Vel Estimates: ", aVelEstimates)
                 sensor_data = np.hstack([ sensor_data, aVelEstimates ])
 
-            if (i>20):
-                estimated_state = state.copy()
-                estimated_state[1] = aVelEstimates[0]
-            else:
-                estimated_state = state.copy()
+
+            estimated_state = state.copy()
+            #if (i>20):
+            estimated_state[1] = aVelEstimates[0]
 
             self.state_estimate = estimated_state
 
 
-
+            # JONATHAN: make it so there's only one torque_gen variable (currently there are 2)
             state, torque_gen = self.updateState_LQR_Control(estimated_state, self.dt, state_desired)
 
             if (i==0):
@@ -369,19 +374,20 @@ class roboBee(object):
         state_data = np.array(state_data)
         t = np.linspace(0, self.dt*state_data.shape[1], state_data.shape[1])
 
-        #"""
+        """
         plt.figure(figsize=[8,6])
         plt.title("Comparing Actual and Estimated Angular Velocity")
         plt.plot(t, sensor_data[0,:], label="Estimates from Sensors")
         plt.plot(t, state_data[1,:], label="Actual Angular Velocity Values")
         plt.plot(t, state_data[0,:], label="Actual Theta Value")
         plt.ylabel("Rotational Velocity [rad/sec]")
-        plt.xlabel("Time [secc]")
+        plt.xlabel("Time [sec]")
         #plt.xlim(0,1)
+        #plt.ylim(-2,2)
         plt.legend()
         plt.show()
-
         """
+
         plt.figure(figsize=[9,7])
         plt.suptitle("LQR Controller - Position (Desired Position x=%4.2f, y=%4.2f)" % (state_desired[2], state_desired[4]))
         #plt.suptitle("LQR Controller (R = 10)")
@@ -400,12 +406,12 @@ class roboBee(object):
         plt.plot(t, state_data[0,:], label='Theta  [rad]')
         plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
         #plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
-        plt.ylim(-0.5,0.5)
+        #plt.ylim(-0.5,0.5)
         plt.xlabel("Time [sec]")
         plt.ylabel("Magnitude")
         plt.legend()
         plt.show()
-        """
+        #"""
 
         return np.transpose(state_data), torque_data
 
@@ -571,6 +577,7 @@ class roboBee(object):
 
         angular_vel_estimates = L.dot(diffs)
 
-        #ngular_vel_estimates = 2 * np.sqrt(3) * diffs / k
+        angular_vel_estimates[0,0] += self.dt*self.LAST_TORQUE_GEN
+
 
         return angular_vel_estimates

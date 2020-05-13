@@ -1,5 +1,4 @@
 import numpy as np
-import quaternion #95% sure I no longer need this, going to leave it for a bit just in case
 import matplotlib.pyplot as plt
 import math
 import control
@@ -257,14 +256,18 @@ class roboBee(object):
         dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
         """
 
+        # Y position robot will fly towards
+        desired_height = 10 #[m]
 
         #this ensures the robot's altitude doesn't get too low or high
-        if u[1] < 10.0 and not self.increased:
-            self.LIFT *= 1.003
+        if u[1] < desired_height and not self.increased:
+            self.LIFT *= 1.01
             self.increased = True
-        elif u[1] > 10.0 and self.increased:
+        elif u[1] > desired_height and self.increased:
             self.LIFT /= 1.003
             self.increased = False
+
+
 
 
         state_dot = np.zeros(12)
@@ -278,7 +281,7 @@ class roboBee(object):
                                         np.dot(gravity, self.inertial_frame[2])])
 
         #generating torque opposing angular velocity keep robot upright
-        TORQUE_CONTROLLER_CONSTANT = 0.9e-7
+        self.TORQUE_CONTROLLER_CONSTANT = 0.9e-7
         torque_gen = -self.TORQUE_CONTROLLER_CONSTANT*u[9:]
 
 
@@ -305,7 +308,7 @@ class roboBee(object):
         #=== update position from velocity vector ===
         u[:3] += dt*vel_global
 
-        #calculate rotation from angular vels, then use quaternions to apply
+        #calculate rotation from angular vels, then use rotation matrix to apply
         #them to orientation, sensors, and inertial frame
         theta_vals = np.zeros(3, dtype=float)
         rot_exists = False
@@ -401,7 +404,6 @@ class roboBee(object):
         plt.grid()
 
 
-
         plt.subplot(1,2,2)
         plt.plot(t, state_data[0,:], label='Theta  [rad]')
         plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
@@ -454,7 +456,6 @@ class roboBee(object):
         #plt.ylim(-10, 10)
         plt.ylabel("Magnitude")
         plt.xlabel("time [sec]")
-        #plt.yscale("log") #tried this once, it looked awful
         plt.title("State Space - PD Controller")
         plt.show()
 
@@ -462,29 +463,27 @@ class roboBee(object):
 
 
     def run_analytical(self, timesteps):
-        """
-        THIS NEEDS TO BE RECONFIGURED TO WORK WITH THE NEW QUATERNION LIBRARY
-        """
+
+        seed(0) #initializes random number generator
+
         vel_data = [ np.linalg.norm(self.state[3:6]) ]
         aVel_data = [ np.linalg.norm(self.state[9:])]
         orientation_angle = [ self.state[7] ]
         state = self.state.copy()
 
         for i in range(timesteps):
-            if(state[1] <= 0.0):
-                print("\n\nBANG BOOM CRASH OH NO!")
-                self.state = state
-                self.getState()
-                break
+            # if(state[1] <= 0.0):
+            #     print("\n\nBANG BOOM CRASH OH NO!")
+            #     self.state = state
+            #     print(i, "POS:", state[:3], "\t--ORIENTATION:", state[6:9], "\t--VEL:", state[3:6])
+            #     break
             if(i%10 == 0):
-                self.readSensors(state)
+                #self.readSensors(state)
                 print(i, "POS:", state[:3], "\t--ORIENTATION:", state[6:9], "\t--VEL:", state[3:6])
-            if i%500 == 0 and i != 0:
+            if i%250 == 0 and i != 0:
                 #this conditional occasionally varies angular vel to validate functionality
                 #of torque controller
-                state[-3] = 15.0
-                print("OOGA BOOGA")
-                print(state)
+                state[1] = -1 + (random() * 2)
 
             half_state = self.updateState_analytical(state.copy(), self.dt/2)
             state = self.updateState_analytical(half_state, self.dt)

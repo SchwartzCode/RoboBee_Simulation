@@ -19,7 +19,7 @@ have values in its second row, as that corresponds to the only state the robot c
 control. I can explain the physics behind this if you'd like, just ask me
 """
 
-input, output = tester.run_lqr(5000)
+input, output = tester.run_analytical(2500)
 
 print(input[0].shape, output.shape)
 

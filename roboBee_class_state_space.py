@@ -339,27 +339,24 @@ class roboBee(object):
 
 
         for i in range(timesteps):
-            print(i, ":\t", state)
 
-            #if(i%50 == 0):
-            #    state[0] = 0.05
 
             if (i==0):
                 state_data = np.vstack([ state, state_desired[2] ])
-                first_reading = self.readSensors(state[0])
-                self.sensor_readings = first_reading
                 sensor_data = np.array([0.0, 0.0]).reshape(2,1)
                 aVelEstimates = np.array([0.0, 0.0]).reshape(2,1)
             else:
                 state_data = np.hstack([ state_data, np.vstack([state, state_desired[2]])  ])
                 new_reading = self.readSensors(state[0])
                 aVelEstimates = self.getAngularVel(new_reading)
-                print("A-Vel Estimates: ", aVelEstimates)
                 sensor_data = np.hstack([ sensor_data, aVelEstimates ])
 
+            if(i%10 == 0):
+                print(i, ":\t", state)
+                if (i != 0):
+                    print("A-Vel Estimates: ", aVelEstimates)
 
             estimated_state = state.copy()
-            #if (i>20):
             estimated_state[1] = aVelEstimates[0]
 
             self.state_estimate = estimated_state
@@ -385,7 +382,7 @@ class roboBee(object):
         plt.plot(t, state_data[0,:], label="Actual Theta Value")
         plt.ylabel("Rotational Velocity [rad/sec]")
         plt.xlabel("Time [sec]")
-        #plt.xlim(0,1)
+        plt.xlim(0,1)
         #plt.ylim(-2,2)
         plt.legend()
         plt.show()
@@ -407,7 +404,7 @@ class roboBee(object):
         plt.subplot(1,2,2)
         plt.plot(t, state_data[0,:], label='Theta  [rad]')
         plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
-        #plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
+        plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
         #plt.ylim(-0.5,0.5)
         plt.xlabel("Time [sec]")
         plt.ylabel("Magnitude")

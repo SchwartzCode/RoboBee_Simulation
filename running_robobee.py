@@ -33,7 +33,7 @@ JIA: use the 'input' and 'output' variables below to train the neural network, i
     you want more data, just increaes x in run_pd(x) as that is the number of time
     steps the simulation will run
 """
-input, output = tester.run_lqr(1000, verbose=True)
+input, output = tester.run_lqr(10000)
 
 """
 #Timing different method funcs, will probably delete eventually

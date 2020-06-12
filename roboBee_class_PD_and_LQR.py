@@ -38,46 +38,15 @@ class roboBee(object):
     sensor_orientations = INITIAL_SENSOR_ORIENTATIONS
     state_estimate = np.array([0.0, 0.0]).reshape(2,1)
 
-    """ For Analytical Controller """
-    increased = False
-    GLOBAL_FRAME = np.identity(3)
-    inertial_frame = GLOBAL_FRAME
-
-
-
 
 
 
     def __init__(self):
-        #unsure if this is still doing anything
+        #unsure if this is still doing anything (it definitely doesn't LOL, fix that JONATHAN)
         self.state = np.array([0.0, 10.0, 0.0,   #position (x, y, z)
                                0.0, 0.0, 0.0,   #velocity
                                0.0, 1.0, 0.0,   #orientation (basically theta)
                                1.0, 0.0, 0.0])  #angular velocity
-
-    def normalize(self, x):
-        normalized = x / np.linalg.norm(x)
-        return normalized
-
-    def rotation_matrix(self, axis, theta):
-        """
-        Return the rotation matrix associated with counterclockwise rotation about
-        the given axis by theta radians.
-
-        I DID NOT MAKE THIS, FOUND IT ON STACKOVERFLOW. LINK:
-        https://stackoverflow.com/questions/6802577/rotation-of-3d-vector
-        """
-        axis = np.asarray(axis)
-        axis = axis / math.sqrt(np.dot(axis, axis))
-        a = math.cos(theta / 2.0)
-        b, c, d = -axis * math.sin(theta / 2.0)
-        aa, bb, cc, dd = a * a, b * b, c * c, d * d
-        bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
-
-        return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
-                         [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
-                         [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
-
 
 
     def updateState_PD_Control(self, state, dt):
@@ -204,8 +173,9 @@ class roboBee(object):
         """  ALTITUDE CONTROLLER
                 All it does is adjust the lift force based on where the robot is
                 is to its desired altitude
-        """
 
+            # JONATHAN: can probably make the logic here a bit simpler
+        """
 
         adjustment = 0.02
         if (state[5] > 0 and state[5] > (state_desired[4] - state[4])):
@@ -229,96 +199,6 @@ class roboBee(object):
         new_state = state + state_dot*dt
 
         return new_state, state_dot_lat[1]
-
-
-    def updateState_analytical(self, u, dt):
-        """
-        This function generates translational and angular accelerations
-        based on the current state (position, orientation, velocities) of the
-        robot. It then uses these to calculate the new state_dot
-
-        u = current state (12 double numpy 1D array)
-            u[:3]  = position in global coordinates [m]
-            u[3:6] = velocity in inertial frame [m/s]
-            u[6:9] = orientation vector (in global coords)
-            u[9:]  = angular velocities about inertial reference frame [rad/sec]
-        dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
-        """
-
-        # Y position robot will fly towards
-        desired_height = 10 #[m]
-
-        #this ensures the robot's altitude doesn't get too low or high
-        if u[1] < desired_height and not self.increased:
-            self.LIFT *= 1.01
-            self.increased = True
-        elif u[1] > desired_height and self.increased:
-            self.LIFT /= 1.003
-            self.increased = False
-
-
-
-
-        state_dot = np.zeros(12)
-
-        drag_force = -self.B_w*(u[3:6] + np.cross(u[9:], self.R_w))
-        drag_torque = np.cross(-self.R_w, drag_force)
-
-        gravity = np.array([0.0, -self.g, 0.0])
-        gravity_inertial = np.array([np.dot(gravity, self.inertial_frame[0]), #this might be unneccesary
-                                        np.dot(gravity, self.inertial_frame[1]),
-                                        np.dot(gravity, self.inertial_frame[2])])
-
-        #generating torque opposing angular velocity keep robot upright
-        self.TORQUE_CONTROLLER_CONSTANT = 1.1e-7
-        torque_gen = -self.TORQUE_CONTROLLER_CONSTANT*u[9:]
-
-
-        state_dot[:3] = u[3:6]     #derivative of position is velocity
-        state_dot[6:9] = u[9:]   #derivative of orientation is angular velocity
-
-        #TRANSLATIONAL ACCELERATION (in ineratial frame)
-        state_dot[3:6] = ((drag_force + self.LIFT) / self.MASS + gravity_inertial -
-                            np.cross(u[9:], u[3:6]))
-        #ROTATIONAL ACCELERATION (about inertial frame axes)
-        state_dot[9:] = ((torque_gen - drag_torque + np.cross(self.R_w, drag_force)
-                            - np.cross(u[9:], self.Jz*u[9:]))/self.Jz)
-
-
-        u[3:6] += dt*state_dot[3:6]   #update vel based on acceleration
-        u[9:] += dt*state_dot[9:]     #update angular vel based on angular accel
-
-
-        #=== convert vel from inertial frame to global ===
-        vel_global = np.zeros(3)
-        for i in range(3):
-            for j in range(3):
-                vel_global[i] += u[3+i]*np.dot(self.inertial_frame[j], self.GLOBAL_FRAME[i])
-        #=== update position from velocity vector ===
-        u[:3] += dt*vel_global
-
-        #calculate rotation from angular vels, then use rotation matrix to apply
-        #them to orientation, sensors, and inertial frame
-        theta_vals = np.zeros(3, dtype=float)
-        rot_exists = False
-
-        for i in range(3):
-            theta_vals[i] = dt*u[9+i] #calculate angle to rotate about orientaiton axes
-            if rot_exists:
-                rotation = np.dot(rotation, self.rotation_matrix(self.inertial_frame[i], theta_vals[i]))
-            else:
-                rotation = self.rotation_matrix(self.inertial_frame[i], theta_vals[i])
-                rot_exists = True
-
-        if rot_exists:
-            u[6:9] = np.dot(rotation,(u[6:9]))
-            for j in range(3):
-                self.inertial_frame[j] = np.dot(rotation, self.inertial_frame[j])
-                self.sensor_orientations[j] = np.dot(rotation, self.sensor_orientations[j])
-            self.sensor_orientations[3] = np.dot(rotation, self.sensor_orientations[3])
-
-        return u
-
 
 
     def LQR_gains(self):
@@ -360,12 +240,13 @@ class roboBee(object):
         return gains
 
 
-    def run_lqr(self, timesteps, verbose = False):
+    def run_lqr(self, timesteps, verbose = False, plots = True):
+        print("Running Simulation with LQR controller...")
 
         state = np.zeros(6).reshape(6,1)
         state_desired = np.array([0.0, 0.0, 2, 0.0, 2, 0.0]).reshape(6,1)
 
-        gains = LQR_gains()
+        gains = self.LQR_gains()
 
         #maybe make this a while loop
         for i in range(timesteps):
@@ -381,10 +262,10 @@ class roboBee(object):
                 aVelEstimates = self.getAngularVel(new_reading)
                 sensor_data = np.hstack([ sensor_data, aVelEstimates ])
 
-            #if(i%10 == 0):
-                #print(i, ":\t", state)
-                #if (i != 0):
-                    #print("A-Vel Estimates: ", aVelEstimates)
+            if i%10 == 0 and verbose:
+                print(i, ":\t", state)
+                if (i != 0):
+                    print("A-Vel Estimates: ", aVelEstimates)
 
             estimated_state = state.copy()
             estimated_state[1] = aVelEstimates[0]
@@ -404,55 +285,56 @@ class roboBee(object):
         state_data = np.array(state_data)
         t = np.linspace(0, self.dt*state_data.shape[1], state_data.shape[1])
 
-        """
-        plt.figure(figsize=[8,6])
-        plt.title("Comparing Actual and Estimated Angular Velocity")
-        plt.plot(t, sensor_data[0,:], label="Estimates from Sensors")
-        plt.plot(t, state_data[1,:], label="Actual Angular Velocity Values")
-        plt.plot(t, state_data[0,:], label="Actual Theta Value")
-        plt.ylabel("Rotational Velocity [rad/sec]")
-        plt.xlabel("Time [sec]")
-        plt.xlim(0,1)
-        #plt.ylim(-2,2)
-        plt.legend()
-        plt.show()
-        """
-        """
-        plt.figure(figsize=[9,7])
-        plt.suptitle("LQR Controller - Position (Desired Position x=%4.2f, y=%4.2f)" % (state_desired[2], state_desired[4]))
-        #plt.suptitle("LQR Controller (R = 10)")
-        plt.subplot(1,2,1)
-        plt.plot(state_data[2,:], state_data[4,:])
-        plt.ylabel('Y [m]')
-        plt.xlabel('X [m]')
-        #plt.plot(t, state_data[2,:])
-        #plt.ylabel('X [m]')
-        #plt.xlabel("t [sec]")
-        plt.grid()
+        if plots:
+            plt.figure(figsize=[8,6])
+            plt.title("Comparing Actual and Estimated Angular Velocity")
+            plt.plot(t, sensor_data[0,:], label="Estimates from Sensors")
+            plt.plot(t, state_data[1,:], label="Actual Angular Velocity Values")
+            plt.plot(t, state_data[0,:], label="Actual Theta Value")
+            plt.ylabel("Rotational Velocity [rad/sec]")
+            plt.xlabel("Time [sec]")
+            plt.xlim(0,1)
+            #plt.ylim(-2,2)
+            plt.legend()
+            plt.show()
+
+            plt.figure(figsize=[9,7])
+            plt.suptitle("LQR Controller - Position (Desired Position x=%4.2f, y=%4.2f)" % (state_desired[2], state_desired[4]))
+            #plt.suptitle("LQR Controller (R = 10)")
+            plt.subplot(1,2,1)
+            plt.plot(state_data[2,:], state_data[4,:])
+            plt.ylabel('Y [m]')
+            plt.xlabel('X [m]')
+            #plt.plot(t, state_data[2,:])
+            #plt.ylabel('X [m]')
+            #plt.xlabel("t [sec]")
+            plt.grid()
 
 
-        plt.subplot(1,2,2)
-        plt.plot(t, state_data[0,:], label='Theta  [rad]')
-        plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
-        plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
-        #plt.ylim(-0.5,0.5)
-        plt.xlabel("Time [sec]")
-        plt.ylabel("Magnitude")
-        plt.legend()
-        plt.show()
-        """
+            plt.subplot(1,2,2)
+            plt.plot(t, state_data[0,:], label='Theta  [rad]')
+            plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
+            plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
+            #plt.ylim(-0.5,0.5)
+            plt.xlabel("Time [sec]")
+            plt.ylabel("Magnitude")
+            plt.legend()
+            plt.show()
 
+        print("Done!")
         return np.transpose(state_data), torque_data
 
 
-    def run_pd(self, timesteps):
+    def run_pd(self, timesteps, verbose = False, plots = True):
+        print("Running simulation with PD controller...")
         seed(0) #initializes random number generator
         state = np.zeros(4)
 
         state[1] = -10 + (random() * 20)
 
         for i in range(timesteps):
-            #print(i, ":\t", state)
+            if verbose:
+                print(i, ":\t", state)
 
             if(i % 250 == 0):
                 #this conditional occasionally varies angular vel to validate functionality
@@ -476,73 +358,21 @@ class roboBee(object):
 
         t = np.linspace(0, self.dt*len(state_data[:,0]), len(state_data[:,0]))
 
-        """
-        plt.plot(t, state_data[:,3], label='Velocity [m/s]')
-        plt.plot(t, state_data[:,1], label='Angular Velocity [rad/s]')
-        plt.grid()
-        plt.legend()
-        #plt.ylim(-10, 10)
-        plt.ylabel("Magnitude")
-        plt.xlabel("time [sec]")
-        plt.title("State Space - PD Controller")
-        plt.show()
-        """
+        if plots:
+            plt.plot(t, state_data[:,3], label='Velocity [m/s]')
+            plt.plot(t, state_data[:,1], label='Angular Velocity [rad/s]')
+            plt.grid()
+            plt.legend()
+            #plt.ylim(-10, 10)
+            plt.ylabel("Magnitude")
+            plt.xlabel("time [sec]")
+            plt.title("State Space - PD Controller")
+            plt.show()
 
+
+        print("Done!")
         return state_data, torques_data
 
-
-    def run_analytical(self, timesteps):
-
-        seed(0) #initializes random number generator
-
-        vel_data = [ np.linalg.norm(self.state[3:6]) ]
-        aVel_data = [ np.linalg.norm(self.state[9:])]
-        orientation_angle = [ self.state[7] ]
-        state = self.state.copy()
-
-        for i in range(timesteps):
-            # if(state[1] <= 0.0):
-            #     print("\n\nBANG BOOM CRASH OH NO!")
-            #     self.state = state
-            #     print(i, "POS:", state[:3], "\t--ORIENTATION:", state[6:9], "\t--VEL:", state[3:6])
-            #     break
-            #if(i%10 == 0):
-                #self.readSensors(state)
-                #print(i, "POS:", state[:3], "\t--ORIENTATION:", state[6:9], "\t--VEL:", state[3:6])
-            if i%250 == 0 and i != 0:
-                #this conditional occasionally varies angular vel to validate functionality
-                #of torque controller
-                state[1] = -1 + (random() * 2)
-
-            half_state = self.updateState_analytical(state.copy(), self.dt/2)
-            state = self.updateState_analytical(half_state, self.dt)
-
-            vel_data.append(np.linalg.norm(state[3:6]))
-            aVel_data.append(np.linalg.norm(state[9:]))
-            orientation_angle.append(state[7])
-
-        a = np.linspace(0,self.dt*len(vel_data),len(vel_data))
-        """
-        plt.plot(a, vel_data, label='Velocity [m/s]')
-        plt.plot(a, aVel_data, label='Angular Velocity [rad/s]')
-        plt.grid()
-        plt.legend()
-        #plt.ylim(0, 1000)
-        plt.ylabel("Magnitude")
-        plt.xlabel("time [sec]")
-        plt.title("k = {0:.1e}".format(self.TORQUE_CONTROLLER_CONSTANT))
-        plt.show()
-        """
-        """
-        # ~~~ THIS PLOTS ORIENTATION ANGLE vs TIME, DID THIS TO SEE IF SMALL
-        # ~~~ ANGLE APPROXIMATION WAS VALID
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        plt.plot(a, orientation_angle)
-        plt.title("Angle of Orientation versus Initial Position")
-        plt.xlabel("Time [sec]")
-        plt.ylabel("Angle [rad]")
-        plt.show()
-        """
 
     def readSensors(self, theta):
 

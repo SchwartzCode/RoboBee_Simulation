@@ -375,12 +375,25 @@ class roboBee(object):
 
 
     def readSensors(self, theta):
+        """ NOTE: This is a very crude estimation. Thought behind it was to use
+                  the light output of a typical lightbulb (seems to be around 850 lumens)
+                  and then to have the brightness adjust proportionally
+                  to the angle between the vector from the robot to the light and the
+                  vector normal to the sensor's surface.
+
+                  The reading is in lux (illuminance per square meter, and I'm saying the
+                  light is 1 meter away, meaning the light's luminance is spread
+                  over a sphere with surface area of 4*pi*[1]^2 = pi)
+        """
+
 
         """ normalize light source vector so magnitude is 1
             light vector is assumed to always be directly above the robot since it
             is far enough away that lateral movement doesn't make a difference. Think of
             the sun in relation to you as you walk around outside """
         light_vec = [0,1,0]
+
+        light_output = 850 #output of light in lumens, typical bulbs give off 600~1200ish lumens
 
 
         init_angle = 30 * np.pi / 180
@@ -398,31 +411,17 @@ class roboBee(object):
 
         for i in range(new_sensor_orientations.shape[0]):
 
-
             angle = np.arccos(np.dot(light_vec, new_sensor_orientations[i]) /
                                 np.linalg.norm(light_vec) * np.linalg.norm(new_sensor_orientations[i]))
 
 
-            """ NOTE: This is a very crude estimation. Thought behind it was to use
-                      the light output of a typical lightbulb (seems to be in the range of
-                      600 - 1200 lumens) and then to have the brightness adjust proportionally
-                      to the angle between the vector from the robot to the light and the
-                      vector normal to the sensor's surface
-                      The reading is in lux (illuminance per square meter, and I'm saying the
-                      light is 1 meter away (so luminance is spread over a sphere with
-                      a surface area of 4*pi*[1]^2 = pi)
-            """
-            light_output = 850 #output of light in lumens
             sensor_readings[i] = light_output * angle
-
 
         return sensor_readings
 
 
     def getAngularVel(self, new_readings):
-        #new_diffs = np.array([ new_readings[0] - new_readings[2], new_readings[1] - new_readings[3] ]).reshape(2,1)
-        #old_diffs = np.array([ self.sensor_readings[0] - self.sensor_readings[2], self.sensor_readings[1] - self.sensor_readings[3] ]).reshape(2,1)
-        #diffs = new_diffs - old_diffs
+        # JONATHAN: add a link to paper I got this math from
 
         diffs = new_readings - self.sensor_readings
         self.sensor_readings = new_readings

@@ -41,7 +41,7 @@ class roboBee(object):
 
 
     def __init__(self):
-        #unsure if this is still doing anything (it definitely doesn't LOL, fix that JONATHAN)
+        #unsure if this is still doing anything (it definitely isn't LOL, fix that JONATHAN)
         self.state = np.array([0.0, 10.0, 0.0,   #position (x, y, z)
                                0.0, 0.0, 0.0,   #velocity
                                0.0, 1.0, 0.0,   #orientation (basically theta)
@@ -246,7 +246,7 @@ class roboBee(object):
         gains = self.LQR_gains()
         torque_gen = 0
 
-        #maybe make this a while loop
+        # JONATHAN:  make this a while loop
         for i in range(timesteps):
 
 
@@ -271,7 +271,7 @@ class roboBee(object):
             self.state_estimate = estimated_state
 
 
-            
+
             state, torque_gen = self.updateState_LQR_Control(estimated_state, self.dt, state_desired, gains)
 
             if (i==0):
@@ -339,8 +339,6 @@ class roboBee(object):
                 #of torque controller
                 state[1] = -10 + (random() * 20)
 
-
-
             if (i==0):
                 state_data = np.array(state)
             else:
@@ -392,8 +390,6 @@ class roboBee(object):
         light_vec = [0,1,0]
 
         light_output = 850 #output of light in lumens, typical bulbs give off 600~1200ish lumens
-
-
         init_angle = 30 * np.pi / 180
 
         new_sensor_orientations = np.array([ [np.cos(init_angle - theta),       np.sin(init_angle - theta),       0],
@@ -411,7 +407,6 @@ class roboBee(object):
 
             angle = np.arccos(np.dot(light_vec, new_sensor_orientations[i]) /
                                 np.linalg.norm(light_vec) * np.linalg.norm(new_sensor_orientations[i]))
-
 
             sensor_readings[i] = light_output * angle
 

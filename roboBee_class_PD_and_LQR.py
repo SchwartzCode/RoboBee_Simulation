@@ -21,7 +21,6 @@ class roboBee(object):
     WING_INERTIA = 45.3 #inertia of wing about flapping axis [mg/mm^2]
     WING_MASS = 1.0 #[mg]
     SENSOR_NOMINAL_VAL = 1.1 #[mA]
-    LAST_TORQUE_GEN = 0.0 #[Nm]
 
 
     LIFT_COEFFICIENT = 1.0
@@ -168,8 +167,6 @@ class roboBee(object):
         state_dot_lat = (A - (B * gains)) * state[:4] + B * gains * state_desired[:4]
 
 
-        self.LAST_TORQUE_GEN = state_dot_lat[1,0]
-
         """  ALTITUDE CONTROLLER
                 All it does is adjust the lift force based on where the robot is
                 is to its desired altitude
@@ -247,6 +244,7 @@ class roboBee(object):
         state_desired = np.array([0.0, 0.0, 2, 0.0, 2, 0.0]).reshape(6,1)
 
         gains = self.LQR_gains()
+        torque_gen = 0
 
         #maybe make this a while loop
         for i in range(timesteps):
@@ -259,7 +257,7 @@ class roboBee(object):
             else:
                 state_data = np.hstack([ state_data, np.vstack([state, state_desired[2]])  ])
                 new_reading = self.readSensors(state[0])
-                aVelEstimates = self.getAngularVel(new_reading)
+                aVelEstimates = self.getAngularVel(new_reading, torque_gen)
                 sensor_data = np.hstack([ sensor_data, aVelEstimates ])
 
             if i%10 == 0 and verbose:
@@ -273,7 +271,7 @@ class roboBee(object):
             self.state_estimate = estimated_state
 
 
-            # JONATHAN: make it so there's only one torque_gen variable (currently there are 2)
+            
             state, torque_gen = self.updateState_LQR_Control(estimated_state, self.dt, state_desired, gains)
 
             if (i==0):
@@ -420,7 +418,7 @@ class roboBee(object):
         return sensor_readings
 
 
-    def getAngularVel(self, new_readings):
+    def getAngularVel(self, new_readings, torque_gen):
         # JONATHAN: add a link to paper I got this math from
 
         diffs = new_readings - self.sensor_readings
@@ -435,7 +433,7 @@ class roboBee(object):
 
         angular_vel_estimates = L.dot(diffs)
 
-        angular_vel_estimates[0,0] += self.dt*self.LAST_TORQUE_GEN
+        angular_vel_estimates[0,0] += self.dt*torque_gen
 
 
         return angular_vel_estimates

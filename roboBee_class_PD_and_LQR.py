@@ -246,16 +246,21 @@ class roboBee(object):
         gains = self.LQR_gains()
         torque_gen = 0
 
-        # JONATHAN:  make this a while loop
-        for i in range(timesteps):
+        pointReached = False
+        i = 0
 
+        while i < timesteps and not pointReached:
+
+            diff = sum( abs(state - state_desired) )
+            if diff < 0.01:
+                pointReached = True
 
             if (i==0):
-                state_data = np.vstack([ state, state_desired[2] ])
+                state_data = np.vstack([ state, state_desired[2], state_desired[4] ])
                 sensor_data = np.array([0.0, 0.0]).reshape(2,1)
                 aVelEstimates = np.array([0.0, 0.0]).reshape(2,1)
             else:
-                state_data = np.hstack([ state_data, np.vstack([state, state_desired[2]])  ])
+                state_data = np.hstack([ state_data, np.vstack([state, state_desired[2], state_desired[4] ])  ])
                 new_reading = self.readSensors(state[0])
                 aVelEstimates = self.getAngularVel(new_reading, torque_gen)
                 sensor_data = np.hstack([ sensor_data, aVelEstimates ])
@@ -279,6 +284,7 @@ class roboBee(object):
             else:
                 torque_data = np.append(torque_data, torque_gen)
 
+            i += 1
 
         state_data = np.array(state_data)
         t = np.linspace(0, self.dt*state_data.shape[1], state_data.shape[1])
@@ -320,6 +326,11 @@ class roboBee(object):
             plt.show()
 
         print("Done!")
+        if i == timesteps:
+            print("Destination not reached in", i, "time steps.")
+        else:
+            print("Destination reached in", i, "time steps.")
+
         return np.transpose(state_data), torque_data
 
 
@@ -331,6 +342,11 @@ class roboBee(object):
         state[1] = -10 + (random() * 20)
 
         for i in range(timesteps):
+            if state[0] > 0.176:
+                print("WARNING: Robot has rotated so much that the error of the small angle approximation has exceeded 1%.")
+                print("In a real experiment, this would likely result in the robot losing control and crashing.")
+                print("Current state: ", state)
+
             if verbose:
                 print(i, ":\t", state)
 
@@ -357,6 +373,7 @@ class roboBee(object):
         if plots:
             plt.plot(t, state_data[:,3], label='Velocity [m/s]')
             plt.plot(t, state_data[:,1], label='Angular Velocity [rad/s]')
+            plt.plot(t, state_data[:,0], label='Angular Position [rad]')
             plt.grid()
             plt.legend()
             #plt.ylim(-10, 10)
@@ -398,9 +415,6 @@ class roboBee(object):
                                          [np.sin(init_angle)*np.sin(theta), np.sin(init_angle)*np.cos(theta), -np.cos(init_angle)] ])
 
 
-        """make sure to take into account vehicle orientation when doing dot products;
-        the sensor vectors are relative to the orientation of the 'bee' """
-
         sensor_readings = np.array([0.0, 0.0, 0.0, 0.0]).reshape(4,1)
 
         for i in range(new_sensor_orientations.shape[0]):
@@ -414,7 +428,12 @@ class roboBee(object):
 
 
     def getAngularVel(self, new_readings, torque_gen):
-        # JONATHAN: add a link to paper I got this math from
+        """
+        For a derivation of the math used in this function, check out section 4 of 'Controlling free flight
+        of a robotic fly using an onboard vision sensor inspired by insect ocelli' by
+        S.B. Fuller et al. :
+            https://royalsocietypublishing.org/doi/full/10.1098/rsif.2014.0281#d3e1883
+        """
 
         diffs = new_readings - self.sensor_readings
         self.sensor_readings = new_readings

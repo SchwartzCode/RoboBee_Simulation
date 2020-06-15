@@ -1,3 +1,21 @@
+"""
+Author:     Jonathan Schwartz   [jonbs98@gmail.com]
+Group:      GWU's Adaptive Devices and Microsystems Lab
+Professor:  Doctor Gina Adam
+Description:
+    Robobee Simulator with a PD controller for stabilizing the robot and an LQR
+    controller that directs the robot toward points in 3D space (while also keeping it
+    adequately stable). The LQR function also includes the readSensors() and getAngularVel()
+    functions, which simulate the robot reading data off of its 4 phototransistors and
+    passes that data back to the robot. The robot uses this data to estimate its
+    state, which is passed on to the control algorithm so the robot can make an
+    informed decision as to its next move.
+
+    This work was inspired by the work of Taylor S. Clawson and Doctors
+    Silvia Ferrari and Robert Wood. More detail can be found here: https://ieeexplore.ieee.org/document/7798778
+"""
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import control
@@ -15,7 +33,7 @@ class roboBee(object):
     dt = 1/120 #1/120 #time step in seconds; represents one step at 120 Hz
 
     LIFT_COEFFICIENT = 1.0
-    last_sensor_readings = np.array([0.0, 0.0, 0.0, 0.0]).reshape(4,1)        
+    last_sensor_readings = np.array([0.0, 0.0, 0.0, 0.0]).reshape(4,1)
 
 
     def updateState_PD_Control(self, state, dt):

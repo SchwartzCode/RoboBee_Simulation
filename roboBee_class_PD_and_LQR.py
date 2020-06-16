@@ -109,11 +109,15 @@ class roboBee(object):
 
     def updateState_LQR_Control(self, state, dt, state_desired, gains):
         """
-        This function will calculate a torque for the robot to apply using its wings in
-        order for it to drive itself towards a desired state.
+        This function will calculate the next state using the current state
+        and the plant's physics (the plant is the transfer function from inputs to the
+        Robobee system to its outputs). The inputs generated are dependent on the robot's
+        current state, desired final state, and the Q and R matrix values used when
+        generating the gains for the Linear Quadratic Regulator (see LQR_gains() method
+        function for more information on this).
 
-        This is what state space is like, where x_dot is deriv of x, which is the
-        state vector, i is the input vector, and A and B are coefficient matrices:
+        This is what state space is like (where x_dot is derivative of x, which is the
+        state vector, u is the input vector, and A and B are coefficient matrices):
 
                             x_dot = A*x + B*i
 
@@ -158,13 +162,8 @@ class roboBee(object):
         # Theta_dot term(s)
         A[1,3] = -self.Rw*self.B_w / self.Jz
 
-        #Note: There are no terms in the A matrix for V_z_dot because that is
-        #   controlled by the altitude controller which is decoupled from this
-        #   controller (the latitude controller)
-
-
         #Coefficients for input matrix B
-        B[1] = 1 #/ self.Jz
+        B[1] = 1 / self.Jz
 
 
 
@@ -221,7 +220,7 @@ class roboBee(object):
 
 
         #Coefficients for input matrix B
-        B[1] = 1 #/ self.Jz
+        B[1] = 1 / self.Jz
 
         Q = np.zeros((4,4))
         #impose larger penalty on theta and theta_dot for deviating than position
@@ -231,7 +230,7 @@ class roboBee(object):
         Q[2,2] = 100
         Q[3,3] = 0.1
 
-        R = 0.001
+        R = 5e15
 
 
         gains, ricatti, eigs = control.lqr(A, B, Q, R)

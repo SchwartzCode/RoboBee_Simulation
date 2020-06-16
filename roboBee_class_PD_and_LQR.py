@@ -109,9 +109,8 @@ class roboBee(object):
 
     def updateState_LQR_Control(self, state, dt, state_desired, gains):
         """
-        This function will calculate the new state using the current state
-        and only a large matrix of coefficients, this is necessary
-        in order to use LQR control.
+        This function will calculate a torque for the robot to apply using its wings in
+        order for it to drive itself towards a desired state.
 
         This is what state space is like, where x_dot is deriv of x, which is the
         state vector, i is the input vector, and A and B are coefficient matrices:
@@ -127,14 +126,22 @@ class roboBee(object):
             state[3] = x_dot (x axis velocity)
             state[4] = z axis position in global coordinates
             state[5] = z_dot (z axis velocity)
-        dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
-        state_desired = final state the robot is trying to get to
-        """
+        dt = time step = 1/120 [seconds] (wings flap at 120 Hz)
+        state_desired = final state the robot is trying to get to (6 double numpy 1D array)
+            * each state_desired value corresponds with a state value, and all are 0
+              except for x and z position, which will be a set of coordinates
+                +-> this means we want the robot to stop and hover at the specified x/z point
+        gains = coefficients to generate inputs based on current state values,
+                the Linear Quadratic Regulator calculated, for more information
+                see the LQR_gains() function (6 double numpy 1D array)
 
-        #These are 'inputs' because the torque controller is proportional to theta
-        #and theta_dot (it's a PD controller if you've taken a controls course)
-        #    In the future this will be elsewhere, just keeping it to evaluate
-        #    This controller against the analytical one I
+        ==== RETURNS ====
+        new_state = The state of the robot one time-step (after dt [seconds]) in the future
+        state_dot_lat[1] = torque the robot decides to generate with its wings based
+                           on its current state, this is returned and stored in an array.
+                           This array is then used as the 'output' training data for the
+                           neural network that will be used to replicate the controller.
+        """
 
 
         A = np.zeros((4, 4))
@@ -167,8 +174,6 @@ class roboBee(object):
         """  ALTITUDE CONTROLLER
                 All it does is adjust the lift force based on where the robot is
                 is to its desired altitude
-
-            # JONATHAN: can probably make the logic here a bit simpler
         """
 
         adjustment = 0.02

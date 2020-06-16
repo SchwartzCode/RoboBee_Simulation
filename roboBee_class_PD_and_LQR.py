@@ -38,22 +38,30 @@ class roboBee(object):
 
     def updateState_PD_Control(self, state, dt):
         """
-        This function will calculate the new state using the current state
-        and only a large matrix of coefficients
+        This function will calculate the next state using the current state
+        and the plant's physics (the plant is the transfer function from inputs to the
+        Robobee system to its outputs).
 
-        This is what state space is like, where x_dot is derivative of x, which is the
-        state vector, i is the input vector, and A and B are coefficient matrices:
+        This is what state space is like (where x_dot is derivative of x, which is the
+        state vector, u is the input vector, and A and B are coefficient matrices):
 
-                            x_dot = A*x + B*i
+                            x_dot = A*x + B*u
 
 
         ==== ARGUMENTS ====
-        state = current state (12 double numpy 1D array)
+        state = current state (4 double numpy 1D array)
             state[0] = theta (angle of rotation from intertial to global coords in 2D)
             state[1] = theta_dot (change in theta per unit time)
             state[2] = x axis position in global coordinates
             state[3] = x_dot (x axis velocity)
-        dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
+        dt = time step = 1/120 [seconds] (wings flap at 120 Hz)
+
+        ==== RETURNS ====
+        new_state = The state of the robot one time-step (after dt [seconds]) in the future
+        torque_applied = torque the robot decides to generate with its wings based
+                         on its current state, this is returned and stored in an array.
+                         This array is then used as the 'output' training data for the
+                         neural network that will be used to replicate the controller.
         """
 
         #These are 'inputs' because the torque controller is proportional to theta
@@ -112,7 +120,7 @@ class roboBee(object):
 
 
         ==== ARGUMENTS ====
-        state = current state (12 double numpy 1D array)
+        state = current state (6 double numpy 1D array)
             state[0] = theta (angle of rotation from intertial to global coords in 2D)
             state[1] = theta_dot (change in theta per unit time)
             state[2] = x axis position in global coordinates
@@ -120,6 +128,7 @@ class roboBee(object):
             state[4] = z axis position in global coordinates
             state[5] = z_dot (z axis velocity)
         dt = time step [seconds], usually 1/120 (wings flap at 120 Hz)
+        state_desired = final state the robot is trying to get to
         """
 
         #These are 'inputs' because the torque controller is proportional to theta

@@ -40,7 +40,14 @@ class roboBee(object):
         """
         This function will calculate the next state using the current state
         and the plant's physics (the plant is the transfer function from inputs to the
-        Robobee system to its outputs).
+        Robobee system to its outputs). The PD contorller simply calculates a torque
+        for the robot to generate during the next dt to drive the robot towards a
+        state where theta and theta_dot are both 0 (i.e. the robot is hovering in
+        space pointing straight upwards with no rotational velocity). It calculates
+        this torque by multiplying a pre-specified constant and the robot's current
+        angular position and another pre-specified constant and the robot's current
+        angular velocity. These two terms are added together, and their sum is the
+        torque the robot will generate during the next time step.
 
         This is what state space is like (where x_dot is derivative of x, which is the
         state vector, u is the input vector, and A and B are coefficient matrices):
@@ -188,18 +195,35 @@ class roboBee(object):
         elif (self.LIFT_COEFFICIENT < 0.5):
             self.LIFT_COEFFICIENT = 0.5
 
-
+        # Calculate change in z_axis position and z_axis velocity based on lift coefficient and orientation of robot
         state_dot_alt = np.array([state[5], self.MASS*self.g*(self.LIFT_COEFFICIENT*np.cos(state[0]) - 1)]).reshape(2,1)
 
-
+        # Combine change in state for lateral variables (x, x_dot, theta, theta_dot)
+        # and altitude variables (z, z_dot)
         state_dot = np.vstack([state_dot_lat, state_dot_alt])
 
+        # New state is calculated by taking last state, and multiplying the current
+        # rate of state change by the time step between states
         new_state = state + state_dot*dt
 
         return new_state, state_dot_lat[1]
 
 
     def LQR_gains(self):
+        """
+        This function uses the Robot's physics and two matrices, Q and R, that the
+        user can change to adjust controller performance. The Robot's A and B matrices
+        (i.e. the plant physics of the system) as well as the Q and R matrices are passed
+        to a function from the control library that uses these matrices (in this code, R
+        is just a constant, but it can also be an identity matrix) to construct and solve
+        an algebraic Riccati equation. This returns a set of gains to obtain the performance
+        specified by the Q and R matrices, an array of eigen values for the closed
+        loop system, and the solution to the Riccati equation.
+
+        ==== RETURNS ====
+
+
+        """
         A = np.zeros((4, 4))
         B = np.zeros(4).reshape(4,1)
         #Derivative of angular positon is angular velocity
@@ -223,8 +247,14 @@ class roboBee(object):
         B[1] = 1 / self.Jz
 
         Q = np.zeros((4,4))
-        #impose larger penalty on theta and theta_dot for deviating than position
-        #because these deviating will cause robot to become unstable and state will diverge
+        """
+        I was going to write out an explanation on how to choose proper Q and R matrix
+        weights, but I think this paper does a great job:
+        https://www.cds.caltech.edu/~murray/courses/cds110/wi06/lqr.pdf
+
+        Section 1 explains the basics of how a LQR works, and section 2 gives some
+        guidelines on selecting weights for both.
+        """
         Q[0,0] = 100
         Q[1,1] = 1
         Q[2,2] = 100
@@ -232,13 +262,43 @@ class roboBee(object):
 
         R = 5e15
 
-
+        # If you're getting weird errors from this function call, try installing python
+        # and all the libraries needed for this code in a conda environment using
+        # anaconda prompt. That worked very well for me (the issue has to do with
+        # numpy not always installing with something called mkl, that's all I know)
         gains, ricatti, eigs = control.lqr(A, B, Q, R)
 
         return gains
 
 
     def run_lqr(self, timesteps, verbose = False, plots = True):
+        """
+        This function drives the LQR solver by calling the updateState_LQR_Control
+        function a certain number of times (or until the desired state is reached).
+        It logs state, system inputs, and estimated state data at each time step.
+        It generates a few plots using this data after it finishes simulating the
+        Robobee, and then returns the state data and system input data in two
+        separate arrays. This can be used as training data for a neural network
+        that is being trained to replicate the LQR controller. The state data would
+        serve as the input to such a network, and the torques generated would be
+        the output.
+
+        ==== ARGUMENTS ====
+        timesteps = number of times the updateState_LQR_Control will be called before
+                    stopping the simulation. Note that if the desired final state is
+                    reached, the simulation will stop even if it hasn't run through
+                    all of the time steps.
+        verbose = if set to true, this function will periodically print state data
+                  while simulation is running
+        plots   = if set to true, this function will generate a few plots to outline
+                  system performance during the simulation
+
+        ==== RETURNS ====
+        state_data  = state of the robot at each time step (training input for a NN)
+        torque_data = torque the LQR function told the robot to generate at each
+                      time step (training output for a NN)
+        """
+
         print("Running Simulation with LQR controller...")
 
         state = np.zeros(6).reshape(6,1)
@@ -251,11 +311,14 @@ class roboBee(object):
         i = 0
 
         while i < timesteps and not pointReached:
-
+            # if the sum of the differences of each state variable and its desired value
+            # is less than 0.01, the simulation will stop as the robot has (more or less)
+            # reached its desired state
             diff = sum( abs(state - state_desired) )
             if diff < 0.01:
                 pointReached = True
 
+            # Logging data at each time step
             if (i==0):
                 state_data = np.vstack([ state, state_desired[2], state_desired[4] ])
                 sensor_data = np.array([0.0, 0.0]).reshape(2,1)
@@ -266,6 +329,8 @@ class roboBee(object):
                 aVelEstimates = self.getAngularVel(new_reading, torque_gen)
                 sensor_data = np.hstack([ sensor_data, aVelEstimates ])
 
+            # If verbose is set to true, this conditional periodically prints state
+            # data to the console
             if i%10 == 0 and verbose:
                 print("State at time step", i, ":\t", state)
                 if (i != 0):
@@ -287,6 +352,8 @@ class roboBee(object):
             i += 1
 
         state_data = np.array(state_data)
+
+        # Create time array to plot state data against
         t = np.linspace(0, self.dt*state_data.shape[1], state_data.shape[1])
 
         if plots:
@@ -335,6 +402,31 @@ class roboBee(object):
 
 
     def run_pd(self, timesteps, verbose = False, plots = True):
+        """
+        This function drives the PD controller by calling the updateState_PD_Control
+        function a number of times equal to the timesteps argument. It logs state,
+        system inputs, and estimated state data at each time step. It generates a few
+        plots using this data after it finishes simulating the Robobee, and then returns
+        the state data and system input data in two separate arrays. This can be used
+        as training data for a neural network that is being trained to replicate the
+        LQR controller. The state data would as the input to such a network, and the
+        torques generated would be the output.
+
+        ==== ARGUMENTS ====
+        timesteps = number of times the updateState_LQR_Control will be called before
+                    stopping the simulation. Note that if the desired final state is
+                    reached, the simulation will stop even if it hasn't run through
+                    all of the time steps.
+        verbose = if set to true, this function will periodically print state data
+                  while simulation is running
+        plots   = if set to true, this function will generate a few plots to outline
+                  system performance during the simulation
+
+        ==== RETURNS ====
+        state_data  = state of the robot at each time step (training input for a NN)
+        torques_data = torque the LQR function told the robot to generate at each
+                      time step (training output for a NN)
+        """
         print("Running simulation with PD controller...")
         seed(0) #initializes random number generator
         state = np.zeros(4)
@@ -388,26 +480,40 @@ class roboBee(object):
 
 
     def readSensors(self, theta):
-        """ NOTE: This is a very crude estimation. Thought behind it was to use
-                  the light output of a typical lightbulb (seems to be around 850 lumens)
-                  and then to have the brightness adjust proportionally
-                  to the angle between the vector from the robot to the light and the
-                  vector normal to the sensor's surface.
+        """
+        This function provides a crude estimation for what each of the robot's four
+        phototransistors would output given the robot's current state. The thought behind
+        this estimation was to use the light output of a typical lightbulb (seems to
+        be around 850 lumens) then to have the brightness adjust proportionally
+        to the angle between the vector from the robot to the light and the vector
+        normal to the sensor's surface.
 
-                  The reading is in lux (illuminance per square meter, and I'm saying the
-                  light is 1 meter away, meaning the light's luminance is spread
-                  over a sphere with surface area of 4*pi*[1]^2 = pi)
+        The reading is in lux (illuminance per square meter, and I'm saying the
+        light is 1 meter away, meaning the light's luminance is spread
+        over a sphere with surface area of 4*pi*[1]^2 = pi).
+
+        A lot of the ideas for these 'estimations' hinge on the assumptions in sections
+        4 and 4.4 of this paper titled 'Controlling free flight of a robotic fly using an
+        onboard vision sensor inspired by insect ocelli' by S.B. Fuller et al. :
+            https://royalsocietypublishing.org/doi/full/10.1098/rsif.2014.0281#d3e1883
+
+        ==== ARGUMENTS ====
+        theta = current angle of rotation of robot body relative to pointing straight up
+
+        ==== RETURNS ====
+        sensor_readings = array of 4 doubles containing the predicted output of each of the
+                          four phototransistors given the robot's current state
         """
 
 
-        """ normalize light source vector so magnitude is 1
-            light vector is assumed to always be directly above the robot since it
-            is far enough away that lateral movement doesn't make a difference. Think of
-            the sun in relation to you as you walk around outside """
+        # Normalized vector from robot to light source. Check out the assumptions in the
+        # paper mentioned above for an in-depth explanation as to how it's okay to use
+        # something this simple for this vector
         light_vec = [0,1,0]
 
         light_output = 850 #output of light in lumens, typical bulbs give off 600~1200ish lumens
-        init_angle = 30 * np.pi / 180
+        init_angle = 30 * np.pi / 180 #angle of normal vector of sensor face relative to horizontal
+                                      # when robot is in starting position (pointing straight up)
 
         new_sensor_orientations = np.array([ [np.cos(init_angle - theta),       np.sin(init_angle - theta),       0],
                                          [np.sin(init_angle)*np.sin(theta), np.sin(init_angle)*np.cos(theta), np.cos(init_angle)],
@@ -418,10 +524,12 @@ class roboBee(object):
         sensor_readings = np.array([0.0, 0.0, 0.0, 0.0]).reshape(4,1)
 
         for i in range(new_sensor_orientations.shape[0]):
-
+            # calculate the angle between vector normal to this phototransistor's face
+            #and the vector from the robot to the lightsource using definition of dot product
             angle = np.arccos(np.dot(light_vec, new_sensor_orientations[i]) /
                                 np.linalg.norm(light_vec) * np.linalg.norm(new_sensor_orientations[i]))
 
+            # assume sensor output is proportional to the angle calculated in the step above
             sensor_readings[i] = light_output * angle
 
 
@@ -430,10 +538,25 @@ class roboBee(object):
 
     def getAngularVel(self, new_readings, torque_gen):
         """
+        This function reads in the current sensor readings, and uses those alongside
+        the sensor readings of the last time step in order to estimate the robot's
+        current angular velocity. The last torque applied is also considered, as without
+        taking that into consideration the estimation algorithm is not adequate.
+
         For a derivation of the math used in this function, check out section 4 of 'Controlling free flight
         of a robotic fly using an onboard vision sensor inspired by insect ocelli' by
         S.B. Fuller et al. :
             https://royalsocietypublishing.org/doi/full/10.1098/rsif.2014.0281#d3e1883
+
+        ==== ARGUMENTS ====
+        new_readings = Sensor readings generated by the readSensors() function during
+                       the current time step
+        torque_gen   = torque generated in the updateState_LQR_Control() function during
+                       the current time step
+
+        ==== RETURNS ====
+        angular_vel_estimates = estimated angular velocities about Y and X axes (in
+                                that order, X axis angular velocity is just about always 0)
         """
 
         diffs = new_readings - self.last_sensor_readings
@@ -449,6 +572,8 @@ class roboBee(object):
         angular_vel_estimates = L.dot(diffs)
 
         angular_vel_estimates[0,0] += self.dt*torque_gen
+
+        print(angular_vel_estimates)
 
 
         return angular_vel_estimates

@@ -562,10 +562,13 @@ class roboBee(object):
         diffs = new_readings - self.last_sensor_readings
         self.last_sensor_readings = new_readings
 
+        # Factor to convert from angular position to sensor readings
         # Original estimate was pi/850, added the 7468.8 to scale from obtained
         # values to desired values
         k = np.pi / (850) * 7468.8
 
+        # Matrix to convert change in sensor readings (d[SR]) over time to angular velocity (w)
+        # such that:    w = L*d[SR]
         L = np.array([ [np.sqrt(3)/k,   0,  -np.sqrt(3)/k,    0,  ],
                        [0,  -np.sqrt(3)/k,  0,  np.sqrt(3)/k]       ])
 

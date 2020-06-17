@@ -17,7 +17,7 @@ The simulation consists of one main file that defines a robobee() object in a fi
 
 If you are in the same directory, then you just need a line in your python script that says:
 
-		`from roboBee-class_PD_and_LQR import *`
+->`from roboBee-class_PD_and_LQR import *`<-
 
 If your python script is not in the same directory as the file containing the Robobee class, then you will need to include the path to the Robobee class file.
 
@@ -25,7 +25,7 @@ If your python script is not in the same directory as the file containing the Ro
 
 To create an instance of the Robobee Class named cheeseburger, you would write the following code:
 
-		`roboBee_Instance = roboBee()`
+->`roboBee_Instance = roboBee()`<-
 
 Note: roboBee must be spelled and capitalized in the same fashion as it is in the robobee class file.
 
@@ -33,13 +33,13 @@ Note: roboBee must be spelled and capitalized in the same fashion as it is in th
 
 To run a simulation using the PD controller (which only stabilizes the robot in place; basically causes the robot to hover), use the run_pd() method function like so:
 
-		`roboBee_Instance.run_pd(timeSteps)`
+->`roboBee_Instance.run_pd(timeSteps)`<-
 
 Note that timeSteps variable is an integer that indicates how many time steps (each is 1/120 of a second) the simulation will run through before stopping. The run_pd() function also has two optional arguments, both of which are booleans: 'plots' and 'verbose'. Plots is set to True by default, and when True the simulation will generate a few plots highlighting the robot's performance after it has run through all of the time steps. Verbose is set to False by default, and when True the simulation will periodically print out the robot's state.
 
 To run a simulation using the LQR controller (which will keep the robot steady and drive it towards specific points), use the run_lqr() function like so:
 
-		`roboBee_Instance.run_lqr(timeSteps)`
+->`roboBee_Instance.run_lqr(timeSteps)`<-
 
 The timeSteps variable is the same as the timeSteps variable for the run_pd() function. The run_lqr also has two optional arguments ('plots' and 'verbose'), both of which work the same as they do for the run_pd() function.
 
@@ -47,7 +47,7 @@ The timeSteps variable is the same as the timeSteps variable for the run_pd() fu
 
 While the run_pd() and run_lqr() functions will always return two different arrays, you can simply ignore them if you aren't trying to train a neural net. If you are, then simply set two variables equal to the function call, like so:
 
-		`input, output = roboBee_Instance.run_lqr(timeSteps)`
+->`input, output = roboBee_Instance.run_lqr(timeSteps)`<-
 	
 
 

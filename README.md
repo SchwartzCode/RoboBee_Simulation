@@ -47,7 +47,7 @@ The timeSteps variable is the same as the timeSteps variable for the run_pd() fu
 
 While the run_pd() and run_lqr() functions will always return two different arrays, you can simply ignore them if you aren't trying to train a neural net. If you are, then simply set two variables equal to the function call, like so:
 
-->`input, output = roboBee_Instance.run_lqr(timeSteps)`<-
+<div align="center">`input, output = roboBee_Instance.run_lqr(timeSteps)`</div>
 	
 
 

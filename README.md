@@ -1,3 +1,10 @@
+# Version 2 Updates
+
+* Run simulation through non-linear dynamics (instead of linearized dynamics; more realistic)
+
+* Add observer to handle light readings
+ 
+
 # A Simulation of Control of a 'Robobee'
 
 This simulation builds off of the work done by Professor Silvia Ferrari and her Laboratory for Intelligent Systems and Controls (LISC) group at Cornell. Information on what they did can be found here: http://lisc.mae.cornell.edu/LISCpresentations/SSCI_AdaptiveSpiking_Clawson17.pdf

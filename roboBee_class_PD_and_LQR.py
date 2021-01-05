@@ -257,7 +257,7 @@ class roboBee(object):
         """
         Q[0,0] = 100
         Q[1,1] = 1
-        Q[2,2] = 100
+        Q[2,2] = 500
         Q[3,3] = 0.1
 
         R = 5e15
@@ -384,7 +384,8 @@ class roboBee(object):
 
             plt.subplot(1,2,2)
             plt.plot(t, state_data[0,:], label='Theta  [rad]')
-            plt.plot(t, state_data[1,:], label='Omega (Theta Dot)  [rad/sec]')
+            plt.plot(t, sensor_data[0,:], label="Omega Estimates from Sensors")
+            plt.plot(t, state_data[1,:], linestyle='--', label='Omega (Theta Dot)  [rad/sec]')
             plt.xlim(0,1) #angle usually congeres within first 100 time steps of simulation
             #plt.ylim(-0.5,0.5)
             plt.xlabel("Time [sec]")
